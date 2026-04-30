@@ -317,11 +317,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addProject = async (p: Omit<Project, 'id' | 'createdAt'>) => {
     const id = uid(); const created_at = now();
     setProjects(prev => [...prev, { ...p, id, createdAt: created_at }]);
-    await supabase.from('projects').insert({
+    const { error } = await supabase.from('projects').insert({
       id, name: p.name, client: p.client, description: p.description,
       status: p.status, start_date: p.startDate, end_date: p.endDate,
       progress: p.progress, members: p.members, created_at,
     });
+    if (error) alert('Supabase 에러: ' + error.message);
   };
 
   const updateProject = async (id: string, updates: Partial<Project>) => {
