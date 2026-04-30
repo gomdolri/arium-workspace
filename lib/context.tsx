@@ -5,6 +5,7 @@ import {
   User, Role, Project, Task, Production, Delivery, CalendarEvent, Notification, Comment, ChecklistItem
 } from './types';
 import {
+  USERS, DEMO_CREDENTIALS,
   INITIAL_PROJECTS, INITIAL_TASKS, INITIAL_PRODUCTION,
   INITIAL_DELIVERY, INITIAL_EVENTS, INITIAL_NOTIFICATIONS
 } from './store';
@@ -218,6 +219,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    // Supabase에서 먼저 확인
     const { data } = await supabase
       .from('users')
       .select('id, name, role, email')
@@ -228,6 +230,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCurrentUser(data as User);
       localStorage.setItem('arium_user', JSON.stringify(data));
       return true;
+    }
+    // Supabase 실패 시 하드코딩 계정으로 폴백
+    if (DEMO_CREDENTIALS[email] === password) {
+      const fallbackUser = USERS.find(u => u.email === email);
+      if (fallbackUser) {
+        setCurrentUser(fallbackUser);
+        localStorage.setItem('arium_user', JSON.stringify(fallbackUser));
+        return true;
+      }
     }
     return false;
   };
