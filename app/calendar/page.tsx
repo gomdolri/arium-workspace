@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
+import { useIsMobile } from '@/lib/hooks';
 import { useApp } from '@/lib/context';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -17,6 +18,7 @@ const EVENT_LABELS: Record<string, string> = {
 
 export default function CalendarPage() {
   const { events, projects, addEvent } = useApp();
+  const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAdd, setShowAdd] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -43,26 +45,30 @@ export default function CalendarPage() {
 
   return (
     <AppShell title="팀 캘린더">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => setCurrentDate(d => subMonths(d, 1))} style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#888888', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}><ChevronLeft size={16} /></button>
-          <h2 style={{ color: '#111111', fontSize: 18, fontWeight: 700, minWidth: 150, textAlign: 'center' }}>
-            {format(currentDate, 'yyyy년 M월', { locale: ko })}
-          </h2>
-          <button onClick={() => setCurrentDate(d => addMonths(d, 1))} style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#888888', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}><ChevronRight size={16} /></button>
-          <button onClick={() => setCurrentDate(new Date())} style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', color: '#888888', fontSize: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>오늘</button>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {Object.entries(EVENT_COLORS).map(([type, color]) => (
-            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />
-              <span style={{ color: '#AAAAAA', fontSize: 10 }}>{EVENT_LABELS[type]}</span>
-            </div>
-          ))}
-          <button onClick={() => setShowAdd(true)} style={{ background: 'linear-gradient(135deg, #FF6200, #CC4E00)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, padding: '7px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, marginLeft: 8, boxShadow: '0 2px 12px rgba(255,98,0,0.2)' }}>
-            <Plus size={13} /> 일정 추가
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? 10 : 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => setCurrentDate(d => subMonths(d, 1))} style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#888888' }}><ChevronLeft size={16} /></button>
+            <h2 style={{ color: '#111111', fontSize: isMobile ? 15 : 18, fontWeight: 700, minWidth: isMobile ? 100 : 150, textAlign: 'center' }}>
+              {format(currentDate, 'yyyy년 M월', { locale: ko })}
+            </h2>
+            <button onClick={() => setCurrentDate(d => addMonths(d, 1))} style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: '#888888' }}><ChevronRight size={16} /></button>
+            <button onClick={() => setCurrentDate(new Date())} style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#888888', fontSize: 11 }}>오늘</button>
+          </div>
+          <button onClick={() => setShowAdd(true)} style={{ background: 'linear-gradient(135deg, #FF6200, #CC4E00)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, padding: '7px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600, boxShadow: '0 2px 12px rgba(255,98,0,0.2)' }}>
+            <Plus size={13} /> {isMobile ? '' : '일정 추가'}
           </button>
         </div>
+        {!isMobile && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+            {Object.entries(EVENT_COLORS).map(([type, color]) => (
+              <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />
+                <span style={{ color: '#AAAAAA', fontSize: 10 }}>{EVENT_LABELS[type]}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
@@ -73,7 +79,7 @@ export default function CalendarPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {paddedDays.map((day, idx) => {
-            if (!day) return <div key={`pad-${idx}`} style={{ borderRight: '1px solid #F5F5F5', borderBottom: '1px solid #F5F5F5', minHeight: 90 }} />;
+            if (!day) return <div key={`pad-${idx}`} style={{ borderRight: '1px solid #F5F5F5', borderBottom: '1px solid #F5F5F5', minHeight: isMobile ? 52 : 90 }} />;
             const dayEvents = getEventsForDay(day);
             const isToday = isSameDay(day, new Date());
             const dayStr = format(day, 'yyyy-MM-dd');
@@ -81,7 +87,7 @@ export default function CalendarPage() {
             const isSun = day.getDay() === 0;
             const isSat = day.getDay() === 6;
             return (
-              <div key={dayStr} onClick={() => setSelectedDay(isSelected ? null : dayStr)} style={{ borderRight: '1px solid #F5F5F5', borderBottom: '1px solid #F5F5F5', minHeight: 90, padding: '8px 6px', cursor: 'pointer', background: isSelected ? 'rgba(255,98,0,0.03)' : 'transparent' }}>
+              <div key={dayStr} onClick={() => setSelectedDay(isSelected ? null : dayStr)} style={{ borderRight: '1px solid #F5F5F5', borderBottom: '1px solid #F5F5F5', minHeight: isMobile ? 52 : 90, padding: isMobile ? '4px 3px' : '8px 6px', cursor: 'pointer', background: isSelected ? 'rgba(255,98,0,0.03)' : 'transparent' }}>
                 <div style={{ width: 24, height: 24, borderRadius: '50%', marginBottom: 4, background: isToday ? '#FF6200' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: isToday ? '#fff' : isSun ? '#EF4444' : isSat ? '#6366F1' : '#555555', fontSize: 11, fontWeight: isToday ? 700 : 400 }}>
                     {format(day, 'd')}
@@ -124,7 +130,7 @@ export default function CalendarPage() {
 
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setShowAdd(false)}>
-          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 18, padding: 28, width: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: isMobile ? '20px 20px 0 0' : 18, padding: isMobile ? '20px 16px' : 28, width: isMobile ? '100%' : 400, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', ...(isMobile && { position: 'fixed', bottom: 0, left: 0, right: 0 }) }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ color: '#111111', fontSize: 16, fontWeight: 700 }}>일정 추가</h2>
               <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', color: '#CCCCCC', cursor: 'pointer' }}><X size={18} /></button>

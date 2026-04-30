@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
+import { useIsMobile } from '@/lib/hooks';
 import { useApp } from '@/lib/context';
 import { getStatusColor, getStatusLabel } from '@/lib/store';
 import { Production, ProductionStatus } from '@/lib/types';
@@ -17,6 +18,7 @@ const STAGES: { key: ProductionStatus; label: string; desc: string }[] = [
 
 export default function ProductionPage() {
   const { productions, projects, addProduction, updateProduction } = useApp();
+  const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<Production | null>(null);
   const [form, setForm] = useState({ projectId: '', productName: '', vendor: '', quantity: '', status: 'contact' as ProductionStatus, sampleDate: '', productionDate: '', completionDate: '', notes: '' });
@@ -33,7 +35,7 @@ export default function ProductionPage() {
   return (
     <AppShell title="생산 관리">
       {/* Pipeline */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 24, overflow: 'hidden', background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, overflowX: 'auto', background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
         {STAGES.map((s, i) => {
           const count = productions.filter(p => p.status === s.key).length;
           return (
@@ -52,7 +54,7 @@ export default function ProductionPage() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
         {productions.map(pr => {
           const project = projects.find(p => p.id === pr.projectId);
           const statusColor = getStatusColor(pr.status);
@@ -80,7 +82,7 @@ export default function ProductionPage() {
       {/* Detail Modal */}
       {selected && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setSelected(null)}>
-          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 18, padding: 28, width: 480, maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: isMobile ? '20px 20px 0 0' : 18, padding: isMobile ? '20px 16px' : 28, width: isMobile ? '100%' : 480, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', ...(isMobile && { position: 'fixed', bottom: 0, left: 0, right: 0 }) }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ color: '#111111', fontSize: 16, fontWeight: 700 }}>{selected.productName}</h2>
               <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: '#CCCCCC', cursor: 'pointer' }}><X size={18} /></button>
@@ -118,7 +120,7 @@ export default function ProductionPage() {
       {/* Add Modal */}
       {showAdd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setShowAdd(false)}>
-          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 18, padding: 28, width: 460, maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: isMobile ? '20px 20px 0 0' : 18, padding: isMobile ? '20px 16px' : 28, width: isMobile ? '100%' : 460, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', ...(isMobile && { position: 'fixed', bottom: 0, left: 0, right: 0 }) }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ color: '#111111', fontSize: 16, fontWeight: 700 }}>생산 추가</h2>
               <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', color: '#CCCCCC', cursor: 'pointer' }}><X size={18} /></button>

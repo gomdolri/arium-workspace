@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import AppShell from '@/components/layout/AppShell';
+import { useIsMobile } from '@/lib/hooks';
 import { useApp } from '@/lib/context';
 import { Upload, Image, Film, FileText, File, X, Plus } from 'lucide-react';
 
@@ -44,6 +45,7 @@ export default function FilesPage() {
   const [filterCategory, setFilterCategory] = useState('all');
   const [activeTab, setActiveTab] = useState<'files' | 'reference'>('files');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   const filtered = files.filter(f => {
     if (filterProject !== 'all' && f.projectId !== filterProject) return false;
@@ -150,38 +152,31 @@ export default function FilesPage() {
 
           {/* File List */}
           <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-              padding: '10px 16px', borderBottom: '1px solid #F5F5F5',
-            }}>
-              {['파일명', '프로젝트', '카테고리', '크기', '업로드일'].map(h => (
-                <p key={h} style={{ color: '#CCCCCC', fontSize: 11 }}>{h}</p>
-              ))}
-            </div>
+            {!isMobile && (
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '10px 16px', borderBottom: '1px solid #F5F5F5' }}>
+                {['파일명', '프로젝트', '카테고리', '크기', '업로드일'].map(h => (
+                  <p key={h} style={{ color: '#CCCCCC', fontSize: 11 }}>{h}</p>
+                ))}
+              </div>
+            )}
             {filtered.map(f => {
               const project = projects.find(p => p.id === f.projectId);
-              const uploader = users.find(u => u.id === f.uploadedBy);
-              return (
-                <div key={f.id} style={{
-                  display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-                  padding: '12px 16px', borderBottom: '1px solid #F9F9F9',
-                  alignItems: 'center',
-                }}>
+              return isMobile ? (
+                <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid #F9F9F9' }}>
+                  <FileIcon type={f.type} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ color: '#111111', fontSize: 13, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{f.name}</p>
+                    <p style={{ color: '#AAAAAA', fontSize: 11 }}>{project?.name || '-'} · {formatBytes(f.size)}</p>
+                  </div>
+                </div>
+              ) : (
+                <div key={f.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 16px', borderBottom: '1px solid #F9F9F9', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <FileIcon type={f.type} />
-                    <div>
-                      <p style={{ color: '#111111', fontSize: 12 }}>{f.name}</p>
-                      {f.tags && <div style={{ display: 'flex', gap: 4, marginTop: 3 }}>
-                        {f.tags.map(t => (
-                          <span key={t} style={{ background: '#F0F0F0', color: '#888888', fontSize: 9, padding: '1px 5px', borderRadius: 3 }}>{t}</span>
-                        ))}
-                      </div>}
-                    </div>
+                    <p style={{ color: '#111111', fontSize: 12 }}>{f.name}</p>
                   </div>
                   <p style={{ color: '#AAAAAA', fontSize: 11 }}>{project?.name || '-'}</p>
-                  <p style={{ color: '#AAAAAA', fontSize: 11 }}>
-                    {{ design: '디자인', video: '영상', document: '문서', reference: '레퍼런스' }[f.category]}
-                  </p>
+                  <p style={{ color: '#AAAAAA', fontSize: 11 }}>{{ design: '디자인', video: '영상', document: '문서', reference: '레퍼런스' }[f.category]}</p>
                   <p style={{ color: '#AAAAAA', fontSize: 11 }}>{formatBytes(f.size)}</p>
                   <p style={{ color: '#AAAAAA', fontSize: 11 }}>{f.uploadedAt}</p>
                 </div>
@@ -204,7 +199,7 @@ export default function FilesPage() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16 }}>
             {REF_BOARD.map(ref => {
               const project = projects.find(p => p.id === ref.projectId);
               return (
