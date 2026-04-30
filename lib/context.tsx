@@ -145,13 +145,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (uData?.length) setUsers(uData as User[]);
 
-      // 첫 실행 시 초기 데이터 삽입 (한 번만)
-      if (!pData?.length && !isRetry) {
-        await seedInitialData();
-        await loadAll(true);
-        return;
-      }
-
       setProjects((pData || []).map(mapProject));
       setTasks((tData || []).map(mapTask));
       setProductions((prData || []).map(mapProduction));
