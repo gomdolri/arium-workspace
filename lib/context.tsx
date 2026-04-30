@@ -174,7 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
-        supabase.from('tasks').select('*, comments(*)').order('created_at'),
+        supabase.from('tasks').select('*').order('created_at'),
         supabase.from('productions').select('*').order('created_at'),
         supabase.from('deliveries').select('*, checklist_items(*)').order('created_at'),
         supabase.from('calendar_events').select('*').order('date'),
