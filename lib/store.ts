@@ -19,7 +19,9 @@ export const DEMO_CREDENTIALS: Record<string, string> = {
   'editor@arium.kr': 'arium2024',
 };
 
-export const INITIAL_PROJECTS: Project[] = [
+export const INITIAL_PROJECTS: Project[] = [];
+
+const _unusedProjects: Project[] = [
   {
     id: 'p1',
     name: '나이키 SS25 캠페인',
@@ -58,173 +60,11 @@ export const INITIAL_PROJECTS: Project[] = [
   },
 ];
 
-export const INITIAL_TASKS: Task[] = [
-  {
-    id: 't1',
-    projectId: 'p1',
-    title: '메인 비주얼 디자인',
-    description: '캠페인 키 비주얼 3종 제작',
-    status: 'inprogress',
-    priority: 'high',
-    assigneeId: 'u2',
-    dueDate: '2025-05-10',
-    createdAt: '2025-03-10',
-    comments: [],
-    attachments: [],
-    progress: 70,
-  },
-  {
-    id: 't2',
-    projectId: 'p1',
-    title: '브랜드 스토리 기획',
-    description: 'SS25 시즌 브랜드 스토리 텍스트 및 방향 기획',
-    status: 'review',
-    priority: 'high',
-    assigneeId: 'u3',
-    dueDate: '2025-05-05',
-    createdAt: '2025-03-10',
-    comments: [],
-    attachments: [],
-    progress: 90,
-  },
-  {
-    id: 't3',
-    projectId: 'p1',
-    title: '캠페인 영상 편집',
-    description: '30초, 60초 버전 각각 제작',
-    status: 'todo',
-    priority: 'medium',
-    assigneeId: 'u4',
-    dueDate: '2025-05-20',
-    createdAt: '2025-03-15',
-    comments: [],
-    attachments: [],
-    progress: 0,
-  },
-  {
-    id: 't4',
-    projectId: 'p2',
-    title: '로고 리디자인',
-    description: '아리움 새 로고 3안 제작',
-    status: 'inprogress',
-    priority: 'high',
-    assigneeId: 'u2',
-    dueDate: '2025-05-15',
-    createdAt: '2025-04-05',
-    comments: [],
-    attachments: [],
-    progress: 40,
-  },
-  {
-    id: 't5',
-    projectId: 'p2',
-    title: '브랜드 가이드라인 문서',
-    description: '컬러, 타이포, 레이아웃 가이드 작성',
-    status: 'todo',
-    priority: 'medium',
-    assigneeId: 'u3',
-    dueDate: '2025-06-01',
-    createdAt: '2025-04-05',
-    comments: [],
-    attachments: [],
-    progress: 0,
-  },
-];
-
-export const INITIAL_PRODUCTION: Production[] = [
-  {
-    id: 'pr1',
-    projectId: 'p1',
-    productName: '캠페인 굿즈 - 에코백',
-    vendor: '서울텍스타일',
-    quantity: 500,
-    status: 'production',
-    sampleDate: '2025-04-10',
-    productionDate: '2025-04-20',
-    completionDate: '2025-05-15',
-    notes: '오렌지 컬러 패턴 적용, 캔버스 소재',
-    createdAt: '2025-04-01',
-  },
-  {
-    id: 'pr2',
-    projectId: 'p1',
-    productName: '패키지 박스',
-    vendor: '한국포장산업',
-    quantity: 500,
-    status: 'sample',
-    sampleDate: '2025-04-25',
-    notes: '크래프트지 + 블랙 포일 인쇄',
-    createdAt: '2025-04-15',
-  },
-];
-
-export const INITIAL_DELIVERY: Delivery[] = [
-  {
-    id: 'd1',
-    projectId: 'p1',
-    productionId: 'pr1',
-    recipient: 'Nike Korea 마케팅팀',
-    items: '에코백 500개',
-    quantity: 500,
-    status: 'preparing',
-    dueDate: '2025-05-20',
-    notes: '강남구 테헤란로 152 나이키코리아 사옥',
-    checklist: [
-      { id: 'c1', label: '수량 확인', checked: true },
-      { id: 'c2', label: '품질 검수', checked: true },
-      { id: 'c3', label: '포장 완료', checked: false },
-      { id: 'c4', label: '송장 발급', checked: false },
-      { id: 'c5', label: '배송 완료', checked: false },
-    ],
-    createdAt: '2025-04-20',
-  },
-];
-
-export const INITIAL_EVENTS: CalendarEvent[] = [
-  {
-    id: 'e1',
-    title: '나이키 중간 보고',
-    date: '2025-05-07',
-    type: 'meeting',
-    projectId: 'p1',
-    assigneeIds: ['u1', 'u3'],
-  },
-  {
-    id: 'e2',
-    title: '메인 비주얼 마감',
-    date: '2025-05-10',
-    type: 'deadline',
-    projectId: 'p1',
-    assigneeIds: ['u2'],
-  },
-  {
-    id: 'e3',
-    title: '에코백 납품',
-    date: '2025-05-20',
-    type: 'delivery',
-    projectId: 'p1',
-    assigneeIds: ['u1'],
-  },
-];
-
-export const INITIAL_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'n1',
-    userId: 'u2',
-    message: '메인 비주얼 디자인 검토 요청이 왔습니다',
-    type: 'approval',
-    read: false,
-    createdAt: today,
-  },
-  {
-    id: 'n2',
-    userId: 'u3',
-    message: '브랜드 스토리 기획 댓글이 달렸습니다',
-    type: 'comment',
-    read: false,
-    createdAt: today,
-  },
-];
+export const INITIAL_TASKS: Task[] = [];
+export const INITIAL_PRODUCTION: Production[] = [];
+export const INITIAL_DELIVERY: Delivery[] = [];
+export const INITIAL_EVENTS: CalendarEvent[] = [];
+export const INITIAL_NOTIFICATIONS: Notification[] = [];
 
 export function getUser(id: string): User | undefined {
   return USERS.find(u => u.id === id);

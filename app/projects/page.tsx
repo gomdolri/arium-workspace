@@ -5,14 +5,15 @@ import AppShell from '@/components/layout/AppShell';
 import { useApp } from '@/lib/context';
 import { getStatusColor, getStatusLabel } from '@/lib/store';
 import { format, parseISO } from 'date-fns';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProjectsPage() {
-  const { projects, users, addProject } = useApp();
+  const { projects, users, addProject, deleteProject } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', client: '', description: '', status: 'planning', startDate: '', endDate: '', members: [] as string[] });
   const [filter, setFilter] = useState('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const handleAdd = () => {
     if (!form.name || !form.client) return;
@@ -51,7 +52,8 @@ export default function ProjectsPage() {
         {filtered.map(p => {
           const statusColor = getStatusColor(p.status);
           return (
-            <Link key={p.id} href={`/projects/${p.id}`} style={{ textDecoration: 'none' }}>
+            <div key={p.id} style={{ position: 'relative' }}>
+              <Link href={`/projects/${p.id}`} style={{ textDecoration: 'none' }}>
               <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 16, padding: 22, cursor: 'pointer', height: '100%', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                   <span style={{ background: `${statusColor}12`, color: statusColor, fontSize: 10, padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
@@ -82,7 +84,26 @@ export default function ProjectsPage() {
                   })}
                 </div>
               </div>
-            </Link>
+              </Link>
+              {/* 삭제 버튼 */}
+              <button
+                onClick={e => { e.preventDefault(); setDeleteConfirm(p.id); }}
+                style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.9)', border: '1px solid #EBEBEB', borderRadius: 6, padding: '4px 6px', cursor: 'pointer', color: '#CCCCCC', display: 'flex', alignItems: 'center' }}
+              >
+                <Trash2 size={12} />
+              </button>
+              {/* 삭제 확인 */}
+              {deleteConfirm === p.id && (
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.95)', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, border: '1px solid #EBEBEB', zIndex: 10 }}>
+                  <p style={{ color: '#111', fontSize: 13, fontWeight: 600 }}>프로젝트를 삭제할까요?</p>
+                  <p style={{ color: '#AAAAAA', fontSize: 11 }}>관련 작업도 모두 삭제됩니다</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => { deleteProject(p.id); setDeleteConfirm(null); }} style={{ background: '#EF4444', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, padding: '7px 16px', cursor: 'pointer', fontWeight: 600 }}>삭제</button>
+                    <button onClick={() => setDeleteConfirm(null)} style={{ background: '#F5F5F5', border: '1px solid #EBEBEB', borderRadius: 6, color: '#888', fontSize: 12, padding: '7px 16px', cursor: 'pointer' }}>취소</button>
+                  </div>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

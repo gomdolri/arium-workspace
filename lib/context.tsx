@@ -29,6 +29,7 @@ interface AppState {
   deleteUser: (id: string) => Promise<void>;
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'comments' | 'attachments'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   addComment: (taskId: string, text: string) => Promise<void>;
@@ -328,6 +329,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await supabase.from('projects').update(db).eq('id', id);
   };
 
+  const deleteProject = async (id: string) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
+    setTasks(prev => prev.filter(t => t.projectId !== id));
+    await supabase.from('tasks').delete().eq('project_id', id);
+    await supabase.from('projects').delete().eq('id', id);
+  };
+
   const addTask = async (t: Omit<Task, 'id' | 'createdAt' | 'comments' | 'attachments'>) => {
     const id = uid(); const created_at = now();
     setTasks(prev => [...prev, { ...t, id, createdAt: created_at, comments: [], attachments: [] }]);
@@ -511,7 +519,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, users, projects, tasks, productions, deliveries,
       events, notifications, loading, login, logout,
       addUser, updateUser, changePassword, deleteUser,
-      addProject, updateProject, addTask, updateTask, deleteTask, addComment, addAttachment,
+      addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, addComment, addAttachment,
       addProduction, updateProduction, addDelivery, updateDelivery,
       toggleChecklist, addEvent, markNotificationRead, unreadCount,
     }}>
