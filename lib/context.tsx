@@ -61,11 +61,15 @@ function mapTask(row: any): Task {
   const comments: Comment[] = (row.comments || []).map((c: any) => ({
     id: c.id, userId: c.user_id, text: c.text, createdAt: c.created_at,
   }));
+  const attachments = (row.attachments || []).map((a: any) => ({
+    id: a.id, name: a.name, url: a.url, type: a.type, size: a.size,
+    uploadedBy: a.uploaded_by, uploadedAt: a.uploaded_at,
+  }));
   return {
     id: row.id, projectId: row.project_id, title: row.title, description: row.description,
     status: row.status, priority: row.priority, assigneeId: row.assignee_id,
     dueDate: row.due_date, progress: row.progress, createdAt: row.created_at,
-    comments, attachments: [],
+    comments, attachments,
   };
 }
 
@@ -131,7 +135,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
-        supabase.from('tasks').select('*, comments(*)').order('created_at'),
+        supabase.from('tasks').select('*, comments(*), attachments(*)').order('created_at'),
         supabase.from('productions').select('*').order('created_at'),
         supabase.from('deliveries').select('*, checklist_items(*)').order('created_at'),
         supabase.from('calendar_events').select('*').order('date'),
@@ -309,15 +313,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addAttachment = async (taskId: string, file: File) => {
     if (!currentUser) return;
-    const path = `${taskId}/${uid()}-${file.name}`;
-    const { data, error } = await supabase.storage.from('task-files').upload(path, file);
-    if (error || !data) return;
+    const id = uid();
+    const path = `${taskId}/${id}-${file.name}`;
+    const { error } = await supabase.storage.from('task-files').upload(path, file);
+    if (error) { console.error('파일 업로드 실패:', error.message); return; }
     const { data: urlData } = supabase.storage.from('task-files').getPublicUrl(path);
     const attachment = {
-      id: uid(), name: file.name, url: urlData.publicUrl,
+      id, name: file.name, url: urlData.publicUrl,
       type: file.type, size: file.size,
       uploadedBy: currentUser.id, uploadedAt: now(),
     };
+    await supabase.from('attachments').insert({
+      id, task_id: taskId, name: file.name, url: urlData.publicUrl,
+      type: file.type, size: file.size,
+      uploaded_by: currentUser.id, uploaded_at: attachment.uploadedAt,
+    });
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachments: [...t.attachments, attachment] } : t));
   };
 
