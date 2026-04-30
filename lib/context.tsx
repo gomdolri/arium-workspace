@@ -2,10 +2,9 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
-  User, Project, Task, Production, Delivery, CalendarEvent, Notification, Comment, ChecklistItem
+  User, Role, Project, Task, Production, Delivery, CalendarEvent, Notification, Comment, ChecklistItem
 } from './types';
 import {
-  USERS, DEMO_CREDENTIALS,
   INITIAL_PROJECTS, INITIAL_TASKS, INITIAL_PRODUCTION,
   INITIAL_DELIVERY, INITIAL_EVENTS, INITIAL_NOTIFICATIONS
 } from './store';
@@ -21,8 +20,12 @@ interface AppState {
   events: CalendarEvent[];
   notifications: Notification[];
   loading: boolean;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  addUser: (data: { name: string; role: Role; email: string; password: string }) => Promise<void>;
+  updateUser: (id: string, updates: { name?: string; role?: Role; email?: string }) => Promise<void>;
+  changePassword: (id: string, password: string) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'comments' | 'attachments'>) => Promise<void>;
@@ -101,6 +104,7 @@ function mapNotification(row: any): Notification {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [productions, setProductions] = useState<Production[]>([]);
@@ -119,9 +123,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     try {
       const [
+        { data: uData },
         { data: pData, error: pError }, { data: tData }, { data: prData },
         { data: dData }, { data: eData }, { data: nData },
       ] = await Promise.all([
+        supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
         supabase.from('tasks').select('*, comments(*)').order('created_at'),
         supabase.from('productions').select('*').order('created_at'),
@@ -134,6 +140,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('Supabase 연결 실패:', pError.message);
         return;
       }
+
+      if (uData?.length) setUsers(uData as User[]);
 
       // 첫 실행 시 초기 데이터 삽입 (한 번만)
       if (!pData?.length && !isRetry) {
@@ -210,14 +218,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const login = (email: string, password: string) => {
-    if (DEMO_CREDENTIALS[email] === password) {
-      const user = USERS.find(u => u.email === email);
-      if (user) {
-        setCurrentUser(user);
-        localStorage.setItem('arium_user', JSON.stringify(user));
-        return true;
-      }
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, role, email')
+      .eq('email', email)
+      .eq('password', password)
+      .single();
+    if (data) {
+      setCurrentUser(data as User);
+      localStorage.setItem('arium_user', JSON.stringify(data));
+      return true;
     }
     return false;
   };
@@ -225,6 +236,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('arium_user');
+  };
+
+  const addUser = async (data: { name: string; role: Role; email: string; password: string }) => {
+    const id = uid();
+    const newUser: User = { id, name: data.name, role: data.role, email: data.email };
+    setUsers(prev => [...prev, newUser]);
+    await supabase.from('users').insert({ id, ...data });
+  };
+
+  const updateUser = async (id: string, updates: { name?: string; role?: Role; email?: string }) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    await supabase.from('users').update(updates).eq('id', id);
+  };
+
+  const changePassword = async (id: string, password: string) => {
+    await supabase.from('users').update({ password }).eq('id', id);
+  };
+
+  const deleteUser = async (id: string) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+    await supabase.from('users').delete().eq('id', id);
   };
 
   const addProject = async (p: Omit<Project, 'id' | 'createdAt'>) => {
@@ -387,8 +419,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      currentUser, users: USERS, projects, tasks, productions, deliveries,
+      currentUser, users, projects, tasks, productions, deliveries,
       events, notifications, loading, login, logout,
+      addUser, updateUser, changePassword, deleteUser,
       addProject, updateProject, addTask, updateTask, addComment,
       addProduction, updateProduction, addDelivery, updateDelivery,
       toggleChecklist, addEvent, markNotificationRead, unreadCount,
