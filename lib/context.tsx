@@ -35,7 +35,7 @@ interface AppState {
   addComment: (taskId: string, text: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   addAttachment: (taskId: string, file: File) => Promise<void>;
-  addLink: (taskId: string, url: string) => void;
+  addLink: (taskId: string, url: string) => Promise<void>;
   addProduction: (prod: Omit<Production, 'id' | 'createdAt'>) => Promise<void>;
   updateProduction: (id: string, updates: Partial<Production>) => Promise<void>;
   addDelivery: (del: Omit<Delivery, 'id' | 'createdAt'>) => Promise<void>;
@@ -174,7 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
-        supabase.from('tasks').select('*').order('created_at'),
+        supabase.from('tasks').select('*, attachments(*)').order('created_at'),
         supabase.from('productions').select('*').order('created_at'),
         supabase.from('deliveries').select('*, checklist_items(*)').order('created_at'),
         supabase.from('calendar_events').select('*').order('date'),
@@ -467,17 +467,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       type: file.type, size: file.size,
       uploadedBy: currentUser.id, uploadedAt: now(),
     };
+    await supabase.from('attachments').insert({
+      id, task_id: taskId, name: file.name, url,
+      type: file.type, size: file.size,
+      uploaded_by: currentUser.id, uploaded_at: attachment.uploadedAt,
+    });
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachments: [...t.attachments, attachment] } : t));
   };
 
-  const addLink = (taskId: string, url: string) => {
+  const addLink = async (taskId: string, url: string) => {
     if (!currentUser) return;
+    const id = uid();
     let name = url;
     try { name = new URL(url).hostname.replace('www.', ''); } catch {}
     const attachment = {
-      id: uid(), name, url, type: 'link', size: 0,
+      id, name, url, type: 'link', size: 0,
       uploadedBy: currentUser.id, uploadedAt: now(),
     };
+    await supabase.from('attachments').insert({
+      id, task_id: taskId, name, url, type: 'link', size: 0,
+      uploaded_by: currentUser.id, uploaded_at: attachment.uploadedAt,
+    });
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachments: [...t.attachments, attachment] } : t));
   };
 
