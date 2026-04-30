@@ -84,7 +84,7 @@ export default function TasksPage() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+  const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
   const filtered = tasks.filter(t => filterProject === 'all' || t.projectId === filterProject);
   const currentTaskData = selectedTask ? tasks.find(t => t.id === selectedTask.id) || selectedTask : null;
@@ -120,7 +120,7 @@ export default function TasksPage() {
     setUploadError('');
     const oversized = Array.from(e.target.files).filter(f => f.size > MAX_FILE_SIZE);
     if (oversized.length > 0) {
-      setUploadError(`파일 크기 초과 (최대 100MB): ${oversized.map(f => f.name).join(', ')}`);
+      setUploadError(`파일 크기 초과 (최대 500MB): ${oversized.map(f => f.name).join(', ')}`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
