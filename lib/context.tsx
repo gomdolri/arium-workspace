@@ -188,8 +188,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Supabase에 데이터 있음 → Supabase 사용 (팀 공유)
         if (uData?.length) setUsers(uData as User[]);
         setProjects(pData.map(mapProject));
-        setTasks((tData || []).map(mapTask));
-        setProductions((prData || []).map(mapProduction));
+
+        // 로컬에만 있는 작업/생산/배송 데이터 Supabase로 자동 마이그레이션
+        if (!tData?.length) {
+          const localTasks = loadLocal<Task[]>('arium_tasks') ?? [];
+          if (localTasks.length) {
+            await Promise.all(localTasks.map(t => supabase.from('tasks').insert({
+              id: t.id, project_id: t.projectId, title: t.title, description: t.description,
+              status: t.status, priority: t.priority, assignee_id: t.assigneeId,
+              due_date: t.dueDate, progress: t.progress, created_at: t.createdAt,
+            }).select()));
+          }
+          setTasks(localTasks);
+        } else {
+          setTasks(tData.map(mapTask));
+        }
+
+        if (!prData?.length) {
+          const localProds = loadLocal<Production[]>('arium_productions') ?? [];
+          if (localProds.length) {
+            await Promise.all(localProds.map(p => supabase.from('productions').insert({
+              id: p.id, project_id: p.projectId, product_name: p.productName,
+              vendor: p.vendor, quantity: p.quantity, status: p.status,
+              sample_date: p.sampleDate, production_date: p.productionDate,
+              completion_date: p.completionDate, notes: p.notes, created_at: p.createdAt,
+            }).select()));
+          }
+          setProductions(localProds);
+        } else {
+          setProductions(prData.map(mapProduction));
+        }
+
         setDeliveries((dData || []).map(mapDelivery));
         setEvents((eData || []).map(mapEvent));
         setNotifications((nData || []).map(mapNotification));
