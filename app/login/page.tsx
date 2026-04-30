@@ -81,10 +81,10 @@ export default function LoginPage() {
                 이메일
               </label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="name@arium.kr"
+                placeholder="아이디 입력"
                 required
                 style={{
                   width: '100%', background: '#F7F7F7', border: '1px solid #EBEBEB',
