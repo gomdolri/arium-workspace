@@ -185,11 +185,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('calendar_events').select('*').order('date'),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
       ]);
-      if (tError) alert('tasks 에러: ' + tError.message);
-      if (cError) alert('comments 에러: ' + cError.message);
-      alert(`tasks: ${tData?.length}개, comments: ${commentsData?.length}개`);
 
-      alert(`pError: ${pError?.message ?? 'none'}, pData: ${pData?.length ?? 'null'}개`);
+
       if (pError) {
         // Supabase 연결 실패 → localStorage 폴백
         loadFromLocalStorage();
