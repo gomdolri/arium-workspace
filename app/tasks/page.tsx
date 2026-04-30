@@ -82,7 +82,9 @@ export default function TasksPage() {
   const [editTitle, setEditTitle] = useState('');
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
   const filtered = tasks.filter(t => filterProject === 'all' || t.projectId === filterProject);
   const currentTaskData = selectedTask ? tasks.find(t => t.id === selectedTask.id) || selectedTask : null;
@@ -115,6 +117,13 @@ export default function TasksPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedTask || !e.target.files?.length) return;
+    setUploadError('');
+    const oversized = Array.from(e.target.files).filter(f => f.size > MAX_FILE_SIZE);
+    if (oversized.length > 0) {
+      setUploadError(`파일 크기 초과 (최대 100MB): ${oversized.map(f => f.name).join(', ')}`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     setUploadLoading(true);
     for (const file of Array.from(e.target.files)) {
       await addAttachment(selectedTask.id, file);
@@ -265,7 +274,10 @@ export default function TasksPage() {
                 <span style={{ color: '#AAAAAA', fontSize: 11 }}>첨부파일 ({currentTaskData.attachments.length})</span>
                 <div>
                   <input type="file" ref={fileInputRef} multiple onChange={handleFileUpload} style={{ display: 'none' }} />
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploadLoading}
+                  {uploadError && (
+                    <p style={{ color: '#EF4444', fontSize: 11, marginBottom: 6 }}>{uploadError}</p>
+                  )}
+                  <button onClick={() => { setUploadError(''); fileInputRef.current?.click(); }} disabled={uploadLoading}
                     style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 6, color: uploadLoading ? '#CCCCCC' : '#888888', fontSize: 11, padding: '4px 10px', cursor: uploadLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Upload size={11} /> {uploadLoading ? '업로드 중...' : '파일 추가'}
                   </button>
