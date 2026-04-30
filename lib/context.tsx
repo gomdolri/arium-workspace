@@ -219,8 +219,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setProductions(prData.map(mapProduction));
         }
 
-        setDeliveries((dData || []).map(mapDelivery));
-        setEvents((eData || []).map(mapEvent));
+        if (!dData?.length) {
+          const localDeliveries = loadLocal<Delivery[]>('arium_deliveries') ?? [];
+          if (localDeliveries.length) {
+            await Promise.all(localDeliveries.map(async d => {
+              await supabase.from('deliveries').insert({
+                id: d.id, project_id: d.projectId, production_id: d.productionId,
+                recipient: d.recipient, items: d.items, quantity: d.quantity,
+                status: d.status, due_date: d.dueDate, tracking_number: d.trackingNumber,
+                carrier: d.carrier, notes: d.notes, created_at: d.createdAt,
+              }).select();
+              if (d.checklist?.length) {
+                await supabase.from('checklist_items').insert(
+                  d.checklist.map(c => ({ id: c.id, delivery_id: d.id, label: c.label, checked: c.checked }))
+                );
+              }
+            }));
+          }
+          setDeliveries(localDeliveries);
+        } else {
+          setDeliveries(dData.map(mapDelivery));
+        }
+
+        if (!eData?.length) {
+          const localEvents = loadLocal<CalendarEvent[]>('arium_events') ?? [];
+          if (localEvents.length) {
+            await Promise.all(localEvents.map(e => supabase.from('calendar_events').insert({
+              id: e.id, title: e.title, date: e.date, end_date: e.endDate,
+              type: e.type, project_id: e.projectId, assignee_ids: e.assigneeIds, color: e.color,
+            }).select()));
+          }
+          setEvents(localEvents);
+        } else {
+          setEvents(eData.map(mapEvent));
+        }
+
         setNotifications((nData || []).map(mapNotification));
       } else {
         // Supabase 비어있음 → localStorage 폴백 (데이터 보존)
