@@ -174,24 +174,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
-        supabase.from('tasks').select('*, comments(*), attachments(*)').order('created_at'),
+        supabase.from('tasks').select('*, comments(*)').order('created_at'),
         supabase.from('productions').select('*').order('created_at'),
         supabase.from('deliveries').select('*, checklist_items(*)').order('created_at'),
         supabase.from('calendar_events').select('*').order('date'),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
       ]);
 
-      if (!pError) {
-        // Supabase 연결 성공 → Supabase 데이터 사용 (팀 공유)
+      if (pError) {
+        // Supabase 연결 실패 → localStorage 폴백
+        loadFromLocalStorage();
+      } else if (pData?.length) {
+        // Supabase에 데이터 있음 → Supabase 사용 (팀 공유)
         if (uData?.length) setUsers(uData as User[]);
-        setProjects((pData || []).map(mapProject));
+        setProjects(pData.map(mapProject));
         setTasks((tData || []).map(mapTask));
         setProductions((prData || []).map(mapProduction));
         setDeliveries((dData || []).map(mapDelivery));
         setEvents((eData || []).map(mapEvent));
         setNotifications((nData || []).map(mapNotification));
       } else {
-        // Supabase 실패 → localStorage 폴백
+        // Supabase 비어있음 → localStorage 폴백 (데이터 보존)
         loadFromLocalStorage();
       }
     } catch {
