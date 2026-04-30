@@ -169,8 +169,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const [
         { data: uData },
-        { data: pData, error: pError }, { data: tData },
-        { data: commentsData }, { data: attachmentsData },
+        { data: pData, error: pError }, { data: tData, error: tError },
+        { data: commentsData, error: cError }, { data: attachmentsData },
         { data: prData }, { data: dData }, { data: checklistData },
         { data: eData }, { data: nData },
       ] = await Promise.all([
@@ -185,6 +185,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('calendar_events').select('*').order('date'),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
       ]);
+      if (tError) alert('tasks 에러: ' + tError.message);
+      if (cError) alert('comments 에러: ' + cError.message);
 
       if (pError) {
         // Supabase 연결 실패 → localStorage 폴백
