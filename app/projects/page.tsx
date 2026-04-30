@@ -9,7 +9,7 @@ import { Plus, X, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProjectsPage() {
-  const { projects, users, addProject, deleteProject } = useApp();
+  const { projects, users, currentUser, addProject, deleteProject } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', client: '', description: '', status: 'planning', startDate: '', endDate: '', members: [] as string[] });
   const [filter, setFilter] = useState('all');
@@ -85,13 +85,15 @@ export default function ProjectsPage() {
                 </div>
               </div>
               </Link>
-              {/* 삭제 버튼 */}
-              <button
-                onClick={e => { e.preventDefault(); setDeleteConfirm(p.id); }}
-                style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.9)', border: '1px solid #EBEBEB', borderRadius: 6, padding: '4px 6px', cursor: 'pointer', color: '#CCCCCC', display: 'flex', alignItems: 'center' }}
-              >
-                <Trash2 size={12} />
-              </button>
+              {/* 삭제 버튼 - 관리자만 */}
+              {currentUser?.role === 'admin' && (
+                <button
+                  onClick={e => { e.preventDefault(); setDeleteConfirm(p.id); }}
+                  style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.9)', border: '1px solid #EBEBEB', borderRadius: 6, padding: '4px 6px', cursor: 'pointer', color: '#CCCCCC', display: 'flex', alignItems: 'center' }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
               {/* 삭제 확인 */}
               {deleteConfirm === p.id && (
                 <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.95)', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, border: '1px solid #EBEBEB', zIndex: 10 }}>
