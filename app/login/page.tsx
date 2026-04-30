@@ -138,30 +138,6 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Demo accounts */}
-        <div style={{
-          marginTop: 16, background: '#FFFFFF',
-          border: '1px solid #EBEBEB', borderRadius: 14, padding: 16,
-          boxShadow: '0 2px 16px rgba(0,0,0,0.04)',
-        }}>
-          <p style={{ color: '#CCCCCC', fontSize: 11, marginBottom: 10 }}>데모 계정 (비밀번호: arium2024)</p>
-          {[
-            { label: '관리자', email: 'admin@arium.kr' },
-            { label: '디자이너', email: 'designer@arium.kr' },
-            { label: '기획자', email: 'planner@arium.kr' },
-            { label: '영상편집자', email: 'editor@arium.kr' },
-          ].map(acc => (
-            <button key={acc.email}
-              onClick={() => { setEmail(acc.email); setPassword('arium2024'); }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: '#AAAAAA', fontSize: 12, padding: '3px 0',
-              }}>
-              <span style={{ color: '#FF6200', fontWeight: 600 }}>{acc.label}</span> — {acc.email}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );
