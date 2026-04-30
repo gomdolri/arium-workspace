@@ -221,12 +221,15 @@ export default function TasksPage() {
 
             {/* 상태 변경 */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-              {COLUMNS.map(col => (
+              {COLUMNS.map(col => {
+                if (col.key === 'done' && currentUser?.role !== 'admin') return null;
+                return (
                 <button key={col.key} onClick={() => updateTask(currentTaskData.id, { status: col.key })}
                   style={{ background: currentTaskData.status === col.key ? `${getStatusColor(col.key)}12` : '#F7F7F7', border: `1px solid ${currentTaskData.status === col.key ? getStatusColor(col.key) : '#EBEBEB'}`, color: currentTaskData.status === col.key ? getStatusColor(col.key) : '#888888', fontSize: 11, padding: '5px 12px', borderRadius: 6, cursor: 'pointer' }}>
                   {col.label}
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             {/* 진행률 */}
