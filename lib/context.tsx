@@ -187,6 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ]);
       if (tError) alert('tasks 에러: ' + tError.message);
       if (cError) alert('comments 에러: ' + cError.message);
+      alert(`tasks: ${tData?.length}개, comments: ${commentsData?.length}개`);
 
       if (pError) {
         // Supabase 연결 실패 → localStorage 폴백
