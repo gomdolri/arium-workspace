@@ -18,19 +18,9 @@ interface FileItem {
   tags?: string[];
 }
 
-const MOCK_FILES: FileItem[] = [
-  { id: 'f1', name: 'nike_ss25_keyvisual_v1.png', type: 'image/png', size: 4200000, projectId: 'p1', category: 'design', uploadedBy: 'u2', uploadedAt: '2025-04-10', url: '', tags: ['키비주얼', '나이키'] },
-  { id: 'f2', name: 'campaign_storyboard.pdf', type: 'application/pdf', size: 1500000, projectId: 'p1', category: 'document', uploadedBy: 'u3', uploadedAt: '2025-04-12', url: '', tags: ['스토리보드'] },
-  { id: 'f3', name: 'brand_guideline_draft.pdf', type: 'application/pdf', size: 3200000, projectId: 'p2', category: 'document', uploadedBy: 'u3', uploadedAt: '2025-04-15', url: '', tags: ['가이드라인'] },
-  { id: 'f4', name: 'arium_logo_v2.ai', type: 'application/ai', size: 890000, projectId: 'p2', category: 'design', uploadedBy: 'u2', uploadedAt: '2025-04-18', url: '', tags: ['로고', '아리움'] },
-  { id: 'f5', name: 'campaign_rough_cut.mp4', type: 'video/mp4', size: 145000000, projectId: 'p1', category: 'video', uploadedBy: 'u4', uploadedAt: '2025-04-20', url: '', tags: ['영상', '러프컷'] },
-];
+const MOCK_FILES: FileItem[] = [];
 
-const REF_BOARD = [
-  { id: 'r1', projectId: 'p1', title: '나이키 레퍼런스 1', description: '미니멀 블랙 컨셉', color: '#111', tags: ['나이키', '블랙'] },
-  { id: 'r2', projectId: 'p1', title: '오렌지 컬러 무드', description: 'vivid orange tone', color: '#FF6200', tags: ['오렌지', '비비드'] },
-  { id: 'r3', projectId: 'p2', title: '아리움 무드보드', description: '브랜드 방향성', color: '#1A1A1A', tags: ['아리움'] },
-];
+const REF_BOARD: { id: string; projectId: string; title: string; description: string; color: string; tags: string[] }[] = [];
 
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 B';
