@@ -31,6 +31,8 @@ interface AppState {
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'comments' | 'attachments'>) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   addComment: (taskId: string, text: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  addAttachment: (taskId: string, file: File) => Promise<void>;
   addProduction: (prod: Omit<Production, 'id' | 'createdAt'>) => Promise<void>;
   updateProduction: (id: string, updates: Partial<Production>) => Promise<void>;
   addDelivery: (del: Omit<Delivery, 'id' | 'createdAt'>) => Promise<void>;
@@ -306,6 +308,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await supabase.from('tasks').update(db).eq('id', id);
   };
 
+  const deleteTask = async (id: string) => {
+    setTasks(prev => prev.filter(t => t.id !== id));
+    await supabase.from('comments').delete().eq('task_id', id);
+    await supabase.from('tasks').delete().eq('id', id);
+  };
+
+  const addAttachment = async (taskId: string, file: File) => {
+    if (!currentUser) return;
+    const path = `${taskId}/${uid()}-${file.name}`;
+    const { data, error } = await supabase.storage.from('task-files').upload(path, file);
+    if (error || !data) return;
+    const { data: urlData } = supabase.storage.from('task-files').getPublicUrl(path);
+    const attachment = {
+      id: uid(), name: file.name, url: urlData.publicUrl,
+      type: file.type, size: file.size,
+      uploadedBy: currentUser.id, uploadedAt: now(),
+    };
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachments: [...t.attachments, attachment] } : t));
+  };
+
   const addComment = async (taskId: string, text: string) => {
     if (!currentUser) return;
     const id = uid(); const created_at = now();
@@ -422,7 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, users, projects, tasks, productions, deliveries,
       events, notifications, loading, login, logout,
       addUser, updateUser, changePassword, deleteUser,
-      addProject, updateProject, addTask, updateTask, addComment,
+      addProject, updateProject, addTask, updateTask, deleteTask, addComment, addAttachment,
       addProduction, updateProduction, addDelivery, updateDelivery,
       toggleChecklist, addEvent, markNotificationRead, unreadCount,
     }}>
