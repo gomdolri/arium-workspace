@@ -2,6 +2,7 @@
 
 import AppShell from '@/components/layout/AppShell';
 import { useApp } from '@/lib/context';
+import { useIsMobile } from '@/lib/hooks';
 import { getUser, getStatusColor, getStatusLabel, getRoleLabel } from '@/lib/store';
 import { format, isPast, parseISO } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -23,6 +24,7 @@ function StatCard({ label, value, sub, color }: { label: string; value: string |
 
 export default function DashboardPage() {
   const { currentUser, projects, tasks, events } = useApp();
+  const isMobile = useIsMobile();
 
   const myTasks = tasks.filter(t => t.assigneeId === currentUser?.id);
   const overdueTasks = myTasks.filter(t => t.dueDate && isPast(parseISO(t.dueDate)) && t.status !== 'done');
@@ -73,14 +75,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'flex', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
         <StatCard label="내 전체 작업" value={myTasks.length} sub="할당된 작업" />
         <StatCard label="진행 중" value={inProgressTasks.length} sub="현재 작업 중" color="#FF6200" />
         <StatCard label="완료" value={doneTasks.length} sub="완료된 작업" color="#10B981" />
         <StatCard label="기한 초과" value={overdueTasks.length} sub="즉시 처리 필요" color={overdueTasks.length > 0 ? '#EF4444' : '#CCCCCC'} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 20 }}>
         {/* Active Projects */}
         <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 14, padding: 20, boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -163,37 +165,49 @@ export default function DashboardPage() {
           <h3 style={{ color: '#111111', fontSize: 14, fontWeight: 600 }}>최근 작업</h3>
           <Link href="/tasks" style={{ color: '#FF6200', fontSize: 11, textDecoration: 'none' }}>전체 보기</Link>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 0 }}>
-          {['작업명', '담당자', '상태', '마감일'].map(h => (
-            <p key={h} style={{ color: '#CCCCCC', fontSize: 11, padding: '0 0 10px', borderBottom: '1px solid #F5F5F5' }}>{h}</p>
-          ))}
-          {recentTasks.map(t => {
+        {isMobile ? (
+          recentTasks.map(t => {
             const assignee = getUser(t.assigneeId);
             const overdue = t.dueDate && isPast(parseISO(t.dueDate)) && t.status !== 'done';
             const statusColor = getStatusColor(t.status);
             return (
-              <>
-                <p key={`n${t.id}`} style={{ color: '#111111', fontSize: 12, padding: '12px 0', borderBottom: '1px solid #F9F9F9' }}>{t.title}</p>
-                <p key={`a${t.id}`} style={{ color: '#888888', fontSize: 12, padding: '12px 0', borderBottom: '1px solid #F9F9F9' }}>{assignee?.name}</p>
-                <div key={`s${t.id}`} style={{ padding: '10px 0', borderBottom: '1px solid #F9F9F9' }}>
-                  <span style={{
-                    background: `${statusColor}12`, color: statusColor,
-                    fontSize: 10, padding: '3px 8px', borderRadius: 4, fontWeight: 600,
-                  }}>
-                    {getStatusLabel(t.status)}
-                  </span>
+              <div key={t.id} style={{ padding: '12px 0', borderBottom: '1px solid #F5F5F5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ color: '#111111', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>{t.title}</p>
+                  <p style={{ color: '#AAAAAA', fontSize: 11 }}>{assignee?.name} · {t.dueDate ? format(parseISO(t.dueDate), 'M/d') : '-'}{overdue ? ' ⚠️' : ''}</p>
                 </div>
-                <p key={`d${t.id}`} style={{
-                  color: overdue ? '#EF4444' : '#AAAAAA', fontSize: 12,
-                  padding: '12px 0', borderBottom: '1px solid #F9F9F9',
-                }}>
-                  {t.dueDate ? format(parseISO(t.dueDate), 'M/d') : '-'}
-                  {overdue && ' ⚠️'}
-                </p>
-              </>
+                <span style={{ background: `${statusColor}12`, color: statusColor, fontSize: 10, padding: '3px 8px', borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
+                  {getStatusLabel(t.status)}
+                </span>
+              </div>
             );
-          })}
-        </div>
+          })
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 0 }}>
+            {['작업명', '담당자', '상태', '마감일'].map(h => (
+              <p key={h} style={{ color: '#CCCCCC', fontSize: 11, padding: '0 0 10px', borderBottom: '1px solid #F5F5F5' }}>{h}</p>
+            ))}
+            {recentTasks.map(t => {
+              const assignee = getUser(t.assigneeId);
+              const overdue = t.dueDate && isPast(parseISO(t.dueDate)) && t.status !== 'done';
+              const statusColor = getStatusColor(t.status);
+              return (
+                <>
+                  <p key={`n${t.id}`} style={{ color: '#111111', fontSize: 12, padding: '12px 0', borderBottom: '1px solid #F9F9F9' }}>{t.title}</p>
+                  <p key={`a${t.id}`} style={{ color: '#888888', fontSize: 12, padding: '12px 0', borderBottom: '1px solid #F9F9F9' }}>{assignee?.name}</p>
+                  <div key={`s${t.id}`} style={{ padding: '10px 0', borderBottom: '1px solid #F9F9F9' }}>
+                    <span style={{ background: `${statusColor}12`, color: statusColor, fontSize: 10, padding: '3px 8px', borderRadius: 4, fontWeight: 600 }}>
+                      {getStatusLabel(t.status)}
+                    </span>
+                  </div>
+                  <p key={`d${t.id}`} style={{ color: overdue ? '#EF4444' : '#AAAAAA', fontSize: 12, padding: '12px 0', borderBottom: '1px solid #F9F9F9' }}>
+                    {t.dueDate ? format(parseISO(t.dueDate), 'M/d') : '-'}{overdue && ' ⚠️'}
+                  </p>
+                </>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AppShell>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useIsMobile } from '@/lib/hooks';
 import AppShell from '@/components/layout/AppShell';
 import { useApp } from '@/lib/context';
 import { getUser, getStatusColor, getStatusLabel } from '@/lib/store';
@@ -87,6 +88,7 @@ export default function TasksPage() {
   const [linkInput, setLinkInput] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
   const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
   const filtered = tasks.filter(t => filterProject === 'all' || t.projectId === filterProject);
@@ -147,8 +149,8 @@ export default function TasksPage() {
   return (
     <AppShell title="작업 보드">
       {/* Filter + Add */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flex: 1, paddingBottom: 2 }}>
           {['all', ...projects.map(p => p.id)].map(id => {
             const label = id === 'all' ? '전체' : projects.find(p => p.id === id)?.name || '';
             return (
@@ -166,11 +168,11 @@ export default function TasksPage() {
       </div>
 
       {/* Kanban */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, overflowX: isMobile ? 'auto' : 'visible', paddingBottom: isMobile ? 8 : 0 }}>
         {COLUMNS.map(col => {
           const colTasks = filtered.filter(t => t.status === col.key);
           return (
-            <div key={col.key}>
+            <div key={col.key} style={isMobile ? { minWidth: 260, flexShrink: 0 } : {}}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: getStatusColor(col.key) }} />
                 <span style={{ color: '#555555', fontSize: 12, fontWeight: 600 }}>{col.label}</span>
@@ -188,7 +190,7 @@ export default function TasksPage() {
       {currentTaskData && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
           onClick={() => { setSelectedTask(null); setShowDeleteConfirm(false); }}>
-          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 18, padding: 28, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
+          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: isMobile ? '20px 20px 0 0' : 18, padding: isMobile ? '20px 16px' : 28, width: '100%', maxWidth: isMobile ? '100%' : 560, maxHeight: isMobile ? '90vh' : '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)', ...(isMobile && { position: 'fixed', bottom: 0, left: 0, right: 0 }) }}
             onClick={e => e.stopPropagation()}>
 
             {/* 헤더 */}

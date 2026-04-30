@@ -6,6 +6,7 @@ import { useApp } from '@/lib/context';
 import { getStatusColor, getStatusLabel } from '@/lib/store';
 import { format, parseISO } from 'date-fns';
 import { Plus, X, Trash2 } from 'lucide-react';
+import { useIsMobile } from '@/lib/hooks';
 import Link from 'next/link';
 
 export default function ProjectsPage() {
@@ -14,6 +15,7 @@ export default function ProjectsPage() {
   const [form, setForm] = useState({ name: '', client: '', description: '', status: 'planning', startDate: '', endDate: '', members: [] as string[] });
   const [filter, setFilter] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const handleAdd = () => {
     if (!form.name || !form.client) return;
@@ -48,7 +50,7 @@ export default function ProjectsPage() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 16 }}>
         {filtered.map(p => {
           const statusColor = getStatusColor(p.status);
           return (
