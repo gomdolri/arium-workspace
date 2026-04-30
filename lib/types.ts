@@ -108,6 +108,7 @@ export interface CalendarEvent {
   type: 'meeting' | 'deadline' | 'delivery' | 'production' | 'other';
   projectId?: string;
   assigneeIds: string[];
+  description?: string;
   color?: string;
 }
 

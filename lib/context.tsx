@@ -42,6 +42,7 @@ interface AppState {
   updateDelivery: (id: string, updates: Partial<Delivery>) => Promise<void>;
   toggleChecklist: (deliveryId: string, checkId: string) => Promise<void>;
   addEvent: (event: Omit<CalendarEvent, 'id'>) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   unreadCount: number;
 }
@@ -100,7 +101,8 @@ function mapDelivery(row: any): Delivery {
 function mapEvent(row: any): CalendarEvent {
   return {
     id: row.id, title: row.title, date: row.date, endDate: row.end_date,
-    type: row.type, projectId: row.project_id, assigneeIds: row.assignee_ids || [], color: row.color,
+    type: row.type, projectId: row.project_id, assigneeIds: row.assignee_ids || [],
+    description: row.description, color: row.color,
   };
 }
 
@@ -595,8 +597,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setEvents(prev => [...prev, { ...e, id }]);
     await supabase.from('calendar_events').insert({
       id, title: e.title, date: e.date, end_date: e.endDate,
-      type: e.type, project_id: e.projectId, assignee_ids: e.assigneeIds, color: e.color,
+      type: e.type, project_id: e.projectId, assignee_ids: e.assigneeIds,
+      description: e.description, color: e.color,
     });
+  };
+
+  const deleteEvent = async (id: string) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+    await supabase.from('calendar_events').delete().eq('id', id);
   };
 
   const markNotificationRead = async (id: string) => {
@@ -632,7 +640,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addUser, updateUser, changePassword, deleteUser,
       addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, addComment, addAttachment, addLink,
       addProduction, updateProduction, addDelivery, updateDelivery,
-      toggleChecklist, addEvent, markNotificationRead, unreadCount,
+      toggleChecklist, addEvent, deleteEvent, markNotificationRead, unreadCount,
     }}>
       {children}
     </AppContext.Provider>

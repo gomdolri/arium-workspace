@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
-import { useIsMobile } from '@/lib/hooks';
 import { useApp } from '@/lib/context';
+import { useIsMobile } from '@/lib/hooks';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Trash2 } from 'lucide-react';
 
 const EVENT_COLORS: Record<string, string> = {
   meeting: '#6366F1', deadline: '#EF4444',
@@ -17,12 +17,12 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 export default function CalendarPage() {
-  const { events, projects, addEvent } = useApp();
+  const { events, projects, users, addEvent, deleteEvent } = useApp();
   const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAdd, setShowAdd] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: '', date: '', type: 'meeting', projectId: '' });
+  const [form, setForm] = useState({ title: '', date: '', type: 'meeting', projectId: '', description: '', assigneeIds: [] as string[] });
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -34,9 +34,18 @@ export default function CalendarPage() {
 
   const handleAdd = () => {
     if (!form.title || !form.date) return;
-    addEvent({ ...form, type: form.type as any, assigneeIds: [] });
-    setForm({ title: '', date: '', type: 'meeting', projectId: '' });
+    addEvent({ ...form, type: form.type as any });
+    setForm({ title: '', date: '', type: 'meeting', projectId: '', description: '', assigneeIds: [] });
     setShowAdd(false);
+  };
+
+  const toggleAssignee = (userId: string) => {
+    setForm(prev => ({
+      ...prev,
+      assigneeIds: prev.assigneeIds.includes(userId)
+        ? prev.assigneeIds.filter(id => id !== userId)
+        : [...prev.assigneeIds, userId],
+    }));
   };
 
   const selectedDayEvents = selectedDay ? events.filter(e => e.date === selectedDay) : [];
@@ -45,6 +54,7 @@ export default function CalendarPage() {
 
   return (
     <AppShell title="팀 캘린더">
+      {/* 헤더 */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? 10 : 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -71,6 +81,7 @@ export default function CalendarPage() {
         )}
       </div>
 
+      {/* 달력 */}
       <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #F5F5F5' }}>
           {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
@@ -87,7 +98,8 @@ export default function CalendarPage() {
             const isSun = day.getDay() === 0;
             const isSat = day.getDay() === 6;
             return (
-              <div key={dayStr} onClick={() => setSelectedDay(isSelected ? null : dayStr)} style={{ borderRight: '1px solid #F5F5F5', borderBottom: '1px solid #F5F5F5', minHeight: isMobile ? 52 : 90, padding: isMobile ? '4px 3px' : '8px 6px', cursor: 'pointer', background: isSelected ? 'rgba(255,98,0,0.03)' : 'transparent' }}>
+              <div key={dayStr} onClick={() => setSelectedDay(isSelected ? null : dayStr)}
+                style={{ borderRight: '1px solid #F5F5F5', borderBottom: '1px solid #F5F5F5', minHeight: isMobile ? 52 : 90, padding: isMobile ? '4px 3px' : '8px 6px', cursor: 'pointer', background: isSelected ? 'rgba(255,98,0,0.03)' : 'transparent' }}>
                 <div style={{ width: 24, height: 24, borderRadius: '50%', marginBottom: 4, background: isToday ? '#FF6200' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: isToday ? '#fff' : isSun ? '#EF4444' : isSat ? '#6366F1' : '#555555', fontSize: 11, fontWeight: isToday ? 700 : 400 }}>
                     {format(day, 'd')}
@@ -105,6 +117,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* 선택된 날 일정 목록 */}
       {selectedDay && selectedDayEvents.length > 0 && (
         <div style={{ marginTop: 16, background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 14, padding: 20, boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
           <h3 style={{ color: '#111111', fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
@@ -112,33 +125,68 @@ export default function CalendarPage() {
           </h3>
           {selectedDayEvents.map(e => {
             const project = projects.find(p => p.id === e.projectId);
+            const attendees = users.filter(u => e.assigneeIds.includes(u.id));
             return (
-              <div key={e.id} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid #F5F5F5' }}>
-                <div style={{ width: 3, background: EVENT_COLORS[e.type], borderRadius: 2, flexShrink: 0 }} />
-                <div>
-                  <p style={{ color: '#111111', fontSize: 13, fontWeight: 500 }}>{e.title}</p>
-                  {project && <p style={{ color: '#AAAAAA', fontSize: 11, marginTop: 2 }}>{project.name}</p>}
+              <div key={e.id} style={{ padding: '14px 0', borderBottom: '1px solid #F5F5F5' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ width: 3, background: EVENT_COLORS[e.type], borderRadius: 2, flexShrink: 0, alignSelf: 'stretch', minHeight: 20 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <p style={{ color: '#111111', fontSize: 13, fontWeight: 600 }}>{e.title}</p>
+                        <span style={{ background: `${EVENT_COLORS[e.type]}12`, color: EVENT_COLORS[e.type], fontSize: 10, padding: '2px 8px', borderRadius: 4, fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
+                          {EVENT_LABELS[e.type]}
+                        </span>
+                        {project && <span style={{ color: '#AAAAAA', fontSize: 11, marginLeft: 6 }}>{project.name}</span>}
+                      </div>
+                      <button onClick={() => deleteEvent(e.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#DDDDDD', padding: 4, flexShrink: 0 }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    {e.description && (
+                      <p style={{ color: '#666666', fontSize: 12, marginTop: 8, lineHeight: 1.5 }}>{e.description}</p>
+                    )}
+                    {attendees.length > 0 && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 10, alignItems: 'center' }}>
+                        <span style={{ color: '#AAAAAA', fontSize: 11 }}>참석:</span>
+                        {attendees.map(u => (
+                          <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F5F5F5', borderRadius: 20, padding: '2px 8px 2px 4px' }}>
+                            <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, #FF6200, #CC4E00)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#fff', fontWeight: 700 }}>
+                              {u.name[0]}
+                            </div>
+                            <span style={{ color: '#555555', fontSize: 11 }}>{u.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <span style={{ marginLeft: 'auto', background: `${EVENT_COLORS[e.type]}12`, color: EVENT_COLORS[e.type], fontSize: 10, padding: '3px 8px', borderRadius: 4, fontWeight: 600, height: 'fit-content' }}>
-                  {EVENT_LABELS[e.type]}
-                </span>
               </div>
             );
           })}
         </div>
       )}
 
+      {/* 일정 추가 모달 */}
       {showAdd && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setShowAdd(false)}>
-          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: isMobile ? '20px 20px 0 0' : 18, padding: isMobile ? '20px 16px' : 28, width: isMobile ? '100%' : 400, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)', ...(isMobile && { position: 'fixed', bottom: 0, left: 0, right: 0 }) }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setShowAdd(false)}>
+          <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: isMobile ? '20px 20px 0 0' : 18, padding: isMobile ? '20px 16px' : 28, width: isMobile ? '100%' : 420, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.12)' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ color: '#111111', fontSize: 16, fontWeight: 700 }}>일정 추가</h2>
               <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', color: '#CCCCCC', cursor: 'pointer' }}><X size={18} /></button>
             </div>
+
             <div style={{ marginBottom: 14 }}>
               <label style={{ color: '#AAAAAA', fontSize: 11, display: 'block', marginBottom: 6 }}>일정 제목</label>
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder="일정 제목" style={inputStyle} />
             </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ color: '#AAAAAA', fontSize: 11, display: 'block', marginBottom: 6 }}>상세 내용</label>
+              <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="장소, 준비물, 내용 등" rows={3} style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }} />
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
                 <label style={{ color: '#AAAAAA', fontSize: 11, display: 'block', marginBottom: 6 }}>날짜</label>
@@ -151,13 +199,33 @@ export default function CalendarPage() {
                 </select>
               </div>
             </div>
-            <div style={{ marginBottom: 20 }}>
+
+            <div style={{ marginBottom: 14 }}>
               <label style={{ color: '#AAAAAA', fontSize: 11, display: 'block', marginBottom: 6 }}>프로젝트</label>
               <select value={form.projectId} onChange={e => setForm(p => ({ ...p, projectId: e.target.value }))} style={inputStyle}>
                 <option value="">프로젝트 선택 (선택사항)</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ color: '#AAAAAA', fontSize: 11, display: 'block', marginBottom: 8 }}>참석 팀원</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {users.map(u => {
+                  const selected = form.assigneeIds.includes(u.id);
+                  return (
+                    <button key={u.id} onClick={() => toggleAssignee(u.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 20, border: `1px solid ${selected ? '#FF6200' : '#EBEBEB'}`, background: selected ? 'rgba(255,98,0,0.08)' : '#F7F7F7', cursor: 'pointer' }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: selected ? 'linear-gradient(135deg, #FF6200, #CC4E00)' : '#DDDDDD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#fff', fontWeight: 700 }}>
+                        {u.name[0]}
+                      </div>
+                      <span style={{ color: selected ? '#FF6200' : '#888888', fontSize: 12, fontWeight: selected ? 600 : 400 }}>{u.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <button onClick={handleAdd} style={{ width: '100%', background: 'linear-gradient(135deg, #FF6200, #CC4E00)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 13, padding: '11px', cursor: 'pointer', fontWeight: 700, boxShadow: '0 4px 16px rgba(255,98,0,0.2)' }}>
               일정 추가
             </button>
