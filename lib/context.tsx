@@ -379,21 +379,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const id = uid();
     let url = '';
 
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      try {
-        const path = `${taskId}/${id}-${file.name}`;
-        const { error } = await supabase.storage.from('task-files').upload(path, file);
-        if (!error) {
-          const { data: urlData } = supabase.storage.from('task-files').getPublicUrl(path);
-          url = urlData.publicUrl;
-          await supabase.from('attachments').insert({
-            id, task_id: taskId, name: file.name, url,
-            type: file.type, size: file.size,
-            uploaded_by: currentUser.id, uploaded_at: now(),
-          });
-        }
-      } catch {}
-    }
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'arium-uploads');
+      const res = await fetch('https://api.cloudinary.com/v1_1/dm1nzbn7k/auto/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.secure_url) url = data.secure_url;
+    } catch {}
 
     if (!url) {
       url = await new Promise<string>((resolve, reject) => {
