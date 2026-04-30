@@ -109,6 +109,13 @@ function mapNotification(row: any): Notification {
   };
 }
 
+function saveLocal(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+function loadLocal<T>(key: string): T | null {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -126,9 +133,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadAll();
   }, []);
 
-  async function loadAll(isRetry = false) {
+  useEffect(() => {
+    if (loading) return;
+    saveLocal('arium_projects', projects);
+    saveLocal('arium_tasks', tasks);
+    saveLocal('arium_productions', productions);
+    saveLocal('arium_deliveries', deliveries);
+    saveLocal('arium_events', events);
+    saveLocal('arium_notifications', notifications);
+  }, [projects, tasks, productions, deliveries, events, notifications, loading]);
+
+  function loadFromLocalStorage() {
+    setUsers(USERS);
+    setProjects(loadLocal<Project[]>('arium_projects') ?? INITIAL_PROJECTS);
+    setTasks(loadLocal<Task[]>('arium_tasks') ?? INITIAL_TASKS);
+    setProductions(loadLocal<Production[]>('arium_productions') ?? INITIAL_PRODUCTION);
+    setDeliveries(loadLocal<Delivery[]>('arium_deliveries') ?? INITIAL_DELIVERY);
+    setEvents(loadLocal<CalendarEvent[]>('arium_events') ?? INITIAL_EVENTS);
+    setNotifications(loadLocal<Notification[]>('arium_notifications') ?? INITIAL_NOTIFICATIONS);
+  }
+
+  async function loadAll() {
     setLoading(true);
     try {
+      // 로컬스토리지에 데이터가 있으면 바로 사용 (Supabase 기다리지 않음)
+      if (loadLocal('arium_projects') !== null) {
+        loadFromLocalStorage();
+        return;
+      }
+      // 로컬스토리지 없을 때만 Supabase 시도
       const [
         { data: uData },
         { data: pData, error: pError }, { data: tData }, { data: prData },
@@ -143,21 +176,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
       ]);
 
-      if (pError) {
-        console.error('Supabase 연결 실패:', pError.message);
-        return;
+      if (!pError && pData?.length) {
+        if (uData?.length) setUsers(uData as User[]);
+        setProjects(pData.map(mapProject));
+        setTasks((tData || []).map(mapTask));
+        setProductions((prData || []).map(mapProduction));
+        setDeliveries((dData || []).map(mapDelivery));
+        setEvents((eData || []).map(mapEvent));
+        setNotifications((nData || []).map(mapNotification));
+      } else {
+        loadFromLocalStorage(); // 초기 데모 데이터 사용
       }
-
-      if (uData?.length) setUsers(uData as User[]);
-
-      setProjects((pData || []).map(mapProject));
-      setTasks((tData || []).map(mapTask));
-      setProductions((prData || []).map(mapProduction));
-      setDeliveries((dData || []).map(mapDelivery));
-      setEvents((eData || []).map(mapEvent));
-      setNotifications((nData || []).map(mapNotification));
-    } catch (err) {
-      console.error('데이터 로딩 오류:', err);
+    } catch {
+      loadFromLocalStorage();
     } finally {
       setLoading(false);
     }
@@ -219,19 +250,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Supabase에서 먼저 확인
-    const { data } = await supabase
-      .from('users')
-      .select('id, name, role, email')
-      .eq('email', email)
-      .eq('password', password)
-      .single();
-    if (data) {
-      setCurrentUser(data as User);
-      localStorage.setItem('arium_user', JSON.stringify(data));
-      return true;
-    }
-    // Supabase 실패 시 하드코딩 계정으로 폴백
+    // 데모 계정은 항상 먼저 체크
     if (DEMO_CREDENTIALS[email] === password) {
       const fallbackUser = USERS.find(u => u.email === email);
       if (fallbackUser) {
@@ -239,6 +258,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('arium_user', JSON.stringify(fallbackUser));
         return true;
       }
+    }
+    // Supabase 실계정 확인
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('id, name, role, email')
+        .eq('email', email)
+        .eq('password', password)
+        .single();
+      if (data) {
+        setCurrentUser(data as User);
+        localStorage.setItem('arium_user', JSON.stringify(data));
+        return true;
+      }
+    } catch {
+      // Supabase 연결 실패
     }
     return false;
   };
@@ -325,20 +360,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addAttachment = async (taskId: string, file: File) => {
     if (!currentUser) return;
     const id = uid();
-    const path = `${taskId}/${id}-${file.name}`;
-    const { error } = await supabase.storage.from('task-files').upload(path, file);
-    if (error) { console.error('파일 업로드 실패:', error.message); return; }
-    const { data: urlData } = supabase.storage.from('task-files').getPublicUrl(path);
+    let url = '';
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      try {
+        const path = `${taskId}/${id}-${file.name}`;
+        const { error } = await supabase.storage.from('task-files').upload(path, file);
+        if (!error) {
+          const { data: urlData } = supabase.storage.from('task-files').getPublicUrl(path);
+          url = urlData.publicUrl;
+          await supabase.from('attachments').insert({
+            id, task_id: taskId, name: file.name, url,
+            type: file.type, size: file.size,
+            uploaded_by: currentUser.id, uploaded_at: now(),
+          });
+        }
+      } catch {}
+    }
+
+    if (!url) {
+      url = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
     const attachment = {
-      id, name: file.name, url: urlData.publicUrl,
+      id, name: file.name, url,
       type: file.type, size: file.size,
       uploadedBy: currentUser.id, uploadedAt: now(),
     };
-    await supabase.from('attachments').insert({
-      id, task_id: taskId, name: file.name, url: urlData.publicUrl,
-      type: file.type, size: file.size,
-      uploaded_by: currentUser.id, uploaded_at: attachment.uploadedAt,
-    });
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachments: [...t.attachments, attachment] } : t));
   };
 
