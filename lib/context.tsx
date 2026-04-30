@@ -167,12 +167,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   async function loadAll() {
     setLoading(true);
     try {
-      // 로컬스토리지에 데이터가 있으면 바로 사용 (Supabase 기다리지 않음)
-      if (loadLocal('arium_projects') !== null) {
-        loadFromLocalStorage();
-        return;
-      }
-      // 로컬스토리지 없을 때만 Supabase 시도
       const [
         { data: uData },
         { data: pData, error: pError }, { data: tData }, { data: prData },
@@ -187,16 +181,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
       ]);
 
-      if (!pError && pData?.length) {
+      if (!pError) {
+        // Supabase 연결 성공 → Supabase 데이터 사용 (팀 공유)
         if (uData?.length) setUsers(uData as User[]);
-        setProjects(pData.map(mapProject));
+        setProjects((pData || []).map(mapProject));
         setTasks((tData || []).map(mapTask));
         setProductions((prData || []).map(mapProduction));
         setDeliveries((dData || []).map(mapDelivery));
         setEvents((eData || []).map(mapEvent));
         setNotifications((nData || []).map(mapNotification));
       } else {
-        loadFromLocalStorage(); // 초기 데모 데이터 사용
+        // Supabase 실패 → localStorage 폴백
+        loadFromLocalStorage();
       }
     } catch {
       loadFromLocalStorage();
