@@ -6,10 +6,10 @@ import { format } from 'date-fns';
 const today = format(new Date(), 'yyyy-MM-dd');
 
 export const USERS: User[] = [
-  { id: 'u1', name: '김관리', role: 'admin', email: 'admin@arium.kr' },
-  { id: 'u2', name: '이디자', role: 'designer', email: 'designer@arium.kr' },
-  { id: 'u3', name: '박기획', role: 'planner', email: 'planner@arium.kr' },
-  { id: 'u4', name: '최편집', role: 'editor', email: 'editor@arium.kr' },
+  { id: 'u1', name: '황준환', role: 'admin', email: 'admin@arium.kr' },
+  { id: 'u2', name: '송예빈', role: 'designer', email: 'designer@arium.kr' },
+  { id: 'u3', name: '송율', role: 'planner', email: 'planner@arium.kr' },
+  { id: 'u4', name: '송초원', role: 'editor', email: 'editor@arium.kr' },
 ];
 
 export const DEMO_CREDENTIALS: Record<string, string> = {
@@ -232,7 +232,7 @@ export function getUser(id: string): User | undefined {
 
 export function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
-    admin: '관리자',
+    admin: '총괄책임자',
     designer: '디자이너',
     planner: '기획자',
     editor: '영상편집자',

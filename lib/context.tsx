@@ -115,11 +115,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadAll();
   }, []);
 
-  async function loadAll() {
+  async function loadAll(isRetry = false) {
     setLoading(true);
     try {
       const [
-        { data: pData }, { data: tData }, { data: prData },
+        { data: pData, error: pError }, { data: tData }, { data: prData },
         { data: dData }, { data: eData }, { data: nData },
       ] = await Promise.all([
         supabase.from('projects').select('*').order('created_at'),
@@ -130,10 +130,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
       ]);
 
-      // 첫 실행 시 초기 데이터 삽입
-      if (!pData?.length) {
+      if (pError) {
+        console.error('Supabase 연결 실패:', pError.message);
+        return;
+      }
+
+      // 첫 실행 시 초기 데이터 삽입 (한 번만)
+      if (!pData?.length && !isRetry) {
         await seedInitialData();
-        await loadAll();
+        await loadAll(true);
         return;
       }
 
@@ -143,6 +148,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setDeliveries((dData || []).map(mapDelivery));
       setEvents((eData || []).map(mapEvent));
       setNotifications((nData || []).map(mapNotification));
+    } catch (err) {
+      console.error('데이터 로딩 오류:', err);
     } finally {
       setLoading(false);
     }
