@@ -6,7 +6,7 @@ import { useApp } from '@/lib/context';
 import { getUser, getStatusColor, getStatusLabel } from '@/lib/store';
 import { Task, TaskStatus } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
-import { Plus, X, Trash2, Upload, FileText, Image, Film, File, Paperclip } from 'lucide-react';
+import { Plus, X, Trash2, Upload, FileText, Image, Film, File, Paperclip, Link } from 'lucide-react';
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
   { key: 'todo', label: '할 일' },
@@ -16,6 +16,7 @@ const COLUMNS: { key: TaskStatus; label: string }[] = [
 ];
 
 function FileIcon({ type }: { type: string }) {
+  if (type === 'link') return <Link size={14} color="#FF6200" />;
   if (type.startsWith('image')) return <Image size={14} color="#6366F1" />;
   if (type.startsWith('video')) return <Film size={14} color="#FF6200" />;
   if (type.includes('pdf') || type.includes('document')) return <FileText size={14} color="#F59E0B" />;
@@ -71,7 +72,7 @@ function TaskCard({ task, onClick }: { task: Task; onClick: () => void }) {
 }
 
 export default function TasksPage() {
-  const { tasks, projects, users, currentUser, updateTask, addTask, addComment, deleteTask, addAttachment } = useApp();
+  const { tasks, projects, users, currentUser, updateTask, addTask, addComment, deleteTask, addAttachment, addLink } = useApp();
   const [filterProject, setFilterProject] = useState<string>('all');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [newComment, setNewComment] = useState('');
@@ -83,6 +84,8 @@ export default function TasksPage() {
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [linkInput, setLinkInput] = useState('');
+  const [showLinkInput, setShowLinkInput] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -272,17 +275,41 @@ export default function TasksPage() {
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ color: '#AAAAAA', fontSize: 11 }}>첨부파일 ({currentTaskData.attachments.length})</span>
-                <div>
+                <div style={{ display: 'flex', gap: 6 }}>
                   <input type="file" ref={fileInputRef} multiple onChange={handleFileUpload} style={{ display: 'none' }} />
-                  {uploadError && (
-                    <p style={{ color: '#EF4444', fontSize: 11, marginBottom: 6 }}>{uploadError}</p>
-                  )}
                   <button onClick={() => { setUploadError(''); fileInputRef.current?.click(); }} disabled={uploadLoading}
                     style={{ background: 'none', border: '1px solid #EBEBEB', borderRadius: 6, color: uploadLoading ? '#CCCCCC' : '#888888', fontSize: 11, padding: '4px 10px', cursor: uploadLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Upload size={11} /> {uploadLoading ? '업로드 중...' : '파일 추가'}
+                    <Upload size={11} /> {uploadLoading ? '업로드 중...' : '파일'}
+                  </button>
+                  <button onClick={() => { setShowLinkInput(v => !v); setUploadError(''); }}
+                    style={{ background: showLinkInput ? 'rgba(255,98,0,0.08)' : 'none', border: `1px solid ${showLinkInput ? '#FF6200' : '#EBEBEB'}`, borderRadius: 6, color: showLinkInput ? '#FF6200' : '#888888', fontSize: 11, padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Link size={11} /> 링크
                   </button>
                 </div>
               </div>
+              {uploadError && <p style={{ color: '#EF4444', fontSize: 11, marginBottom: 8 }}>{uploadError}</p>}
+              {showLinkInput && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  <input
+                    value={linkInput}
+                    onChange={e => setLinkInput(e.target.value)}
+                    placeholder="https://drive.google.com/... 링크 붙여넣기"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && linkInput.trim()) {
+                        addLink(currentTaskData.id, linkInput.trim());
+                        setLinkInput('');
+                        setShowLinkInput(false);
+                      }
+                    }}
+                    style={{ flex: 1, background: '#F7F7F7', border: '1px solid #EBEBEB', borderRadius: 8, padding: '7px 12px', color: '#111', fontSize: 12, outline: 'none' }}
+                  />
+                  <button
+                    onClick={() => { if (linkInput.trim()) { addLink(currentTaskData.id, linkInput.trim()); setLinkInput(''); setShowLinkInput(false); } }}
+                    style={{ background: '#FF6200', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, padding: '7px 14px', cursor: 'pointer', fontWeight: 600 }}>
+                    추가
+                  </button>
+                </div>
+              )}
               {currentTaskData.attachments.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {currentTaskData.attachments.map(att => (

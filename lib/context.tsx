@@ -35,6 +35,7 @@ interface AppState {
   addComment: (taskId: string, text: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   addAttachment: (taskId: string, file: File) => Promise<void>;
+  addLink: (taskId: string, url: string) => void;
   addProduction: (prod: Omit<Production, 'id' | 'createdAt'>) => Promise<void>;
   updateProduction: (id: string, updates: Partial<Production>) => Promise<void>;
   addDelivery: (del: Omit<Delivery, 'id' | 'createdAt'>) => Promise<void>;
@@ -408,6 +409,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachments: [...t.attachments, attachment] } : t));
   };
 
+  const addLink = (taskId: string, url: string) => {
+    if (!currentUser) return;
+    let name = url;
+    try { name = new URL(url).hostname.replace('www.', ''); } catch {}
+    const attachment = {
+      id: uid(), name, url, type: 'link', size: 0,
+      uploadedBy: currentUser.id, uploadedAt: now(),
+    };
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachments: [...t.attachments, attachment] } : t));
+  };
+
   const addComment = async (taskId: string, text: string) => {
     if (!currentUser) return;
     const id = uid(); const created_at = now();
@@ -524,7 +536,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, users, projects, tasks, productions, deliveries,
       events, notifications, loading, login, logout,
       addUser, updateUser, changePassword, deleteUser,
-      addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, addComment, addAttachment,
+      addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, addComment, addAttachment, addLink,
       addProduction, updateProduction, addDelivery, updateDelivery,
       toggleChecklist, addEvent, markNotificationRead, unreadCount,
     }}>
