@@ -110,11 +110,17 @@ function mapNotification(row: any): Notification {
   };
 }
 
+const DATA_VERSION = 'v2';
+
 function saveLocal(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
 }
 function loadLocal<T>(key: string): T | null {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
+}
+function clearLocalData() {
+  ['arium_projects', 'arium_tasks', 'arium_productions', 'arium_deliveries', 'arium_events', 'arium_notifications'].forEach(k => localStorage.removeItem(k));
+  localStorage.setItem('arium_data_version', DATA_VERSION);
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -129,6 +135,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (localStorage.getItem('arium_data_version') !== DATA_VERSION) {
+      clearLocalData();
+    }
     const saved = localStorage.getItem('arium_user');
     if (saved) setCurrentUser(JSON.parse(saved));
     loadAll();
