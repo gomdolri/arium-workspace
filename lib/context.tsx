@@ -169,14 +169,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const [
         { data: uData },
-        { data: pData, error: pError }, { data: tData }, { data: prData },
-        { data: dData }, { data: eData }, { data: nData },
+        { data: pData, error: pError }, { data: tData },
+        { data: commentsData }, { data: attachmentsData },
+        { data: prData }, { data: dData }, { data: checklistData },
+        { data: eData }, { data: nData },
       ] = await Promise.all([
         supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
-        supabase.from('tasks').select('*, comments(*), attachments(*)').order('created_at'),
+        supabase.from('tasks').select('*').order('created_at'),
+        supabase.from('comments').select('*'),
+        supabase.from('attachments').select('*'),
         supabase.from('productions').select('*').order('created_at'),
-        supabase.from('deliveries').select('*, checklist_items(*)').order('created_at'),
+        supabase.from('deliveries').select('*').order('created_at'),
+        supabase.from('checklist_items').select('*'),
         supabase.from('calendar_events').select('*').order('date'),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
       ]);
@@ -189,7 +194,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (uData?.length) setUsers(uData as User[]);
         setProjects(pData.map(mapProject));
 
-        // 로컬에만 있는 작업/생산/배송 데이터 Supabase로 자동 마이그레이션
+        // tasks에 comments, attachments 합치기
+        const mergedTasks = (tData || []).map(t => {
+          const comments = (commentsData || []).filter((c: any) => c.task_id === t.id).map((c: any) => ({
+            id: c.id, userId: c.user_id, text: c.text, createdAt: c.created_at,
+          }));
+          const attachments = (attachmentsData || []).filter((a: any) => a.task_id === t.id).map((a: any) => ({
+            id: a.id, name: a.name, url: a.url, type: a.type, size: a.size,
+            uploadedBy: a.uploaded_by, uploadedAt: a.uploaded_at,
+          }));
+          return { ...mapTask({ ...t, comments: [], attachments: [] }), comments, attachments };
+        });
+
         if (!tData?.length) {
           const localTasks = loadLocal<Task[]>('arium_tasks') ?? [];
           if (localTasks.length) {
@@ -201,7 +217,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           setTasks(localTasks);
         } else {
-          setTasks(tData.map(mapTask));
+          setTasks(mergedTasks);
         }
 
         if (!prData?.length) {
@@ -238,7 +254,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           setDeliveries(localDeliveries);
         } else {
-          setDeliveries(dData.map(mapDelivery));
+          const mergedDeliveries = dData.map((d: any) => {
+            const checklist = (checklistData || []).filter((c: any) => c.delivery_id === d.id).map((c: any) => ({
+              id: c.id, label: c.label, checked: c.checked,
+            }));
+            return { ...mapDelivery({ ...d, checklist_items: [] }), checklist };
+          });
+          setDeliveries(mergedDeliveries);
         }
 
         if (!eData?.length) {
