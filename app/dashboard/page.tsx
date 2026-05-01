@@ -70,7 +70,7 @@ export default function DashboardPage() {
           안녕하세요, {currentUser?.name}님 👋
         </h2>
         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 6 }}>
-          오늘 {format(new Date(), 'M월 d일 EEEE', { locale: ko })} · 진행 중인 프로젝트 {activeProjects.length}개
+          오늘 {format(new Date(), 'M월 d일 EEEE', { locale: ko })} · 현재 프로젝트 {activeProjects.length}개
         </p>
       </div>
 
@@ -86,7 +86,7 @@ export default function DashboardPage() {
         {/* Active Projects */}
         <div style={{ background: '#FFFFFF', border: '1px solid #EBEBEB', borderRadius: 14, padding: 20, boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ color: '#111111', fontSize: 14, fontWeight: 600 }}>진행 중 / 기획 중 프로젝트</h3>
+            <h3 style={{ color: '#111111', fontSize: 14, fontWeight: 600 }}>현재 프로젝트</h3>
             <Link href="/projects" style={{ color: '#FF6200', fontSize: 11, textDecoration: 'none' }}>전체 보기</Link>
           </div>
           {activeProjects.map(p => (
