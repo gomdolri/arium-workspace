@@ -6,7 +6,7 @@ import { useApp } from '@/lib/context';
 import { getRoleLabel } from '@/lib/store';
 import {
   LayoutDashboard, FolderKanban, CheckSquare, Calendar,
-  Files, Factory, Truck, Settings, LogOut
+  Files, Factory, Truck, Settings, LogOut, Film
 } from 'lucide-react';
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
   { href: '/projects', label: '프로젝트', icon: FolderKanban },
   { href: '/tasks', label: '작업', icon: CheckSquare },
   { href: '/calendar', label: '캘린더', icon: Calendar },
+  { href: '/storyboard', label: '스토리보드', icon: Film },
   { href: '/files', label: '파일/레퍼런스', icon: Files },
   { href: '/production', label: '생산관리', icon: Factory },
   { href: '/delivery', label: '납품관리', icon: Truck },

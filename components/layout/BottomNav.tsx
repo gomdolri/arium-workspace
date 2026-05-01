@@ -7,17 +7,18 @@ import { useApp } from '@/lib/context';
 import { getRoleLabel } from '@/lib/store';
 import {
   LayoutDashboard, FolderKanban, CheckSquare, Calendar,
-  Menu, Files, Factory, Truck, Settings, LogOut, X
+  Menu, Files, Factory, Truck, Settings, LogOut, X, Film
 } from 'lucide-react';
 
 const mainNav = [
   { href: '/dashboard', label: '대시보드', icon: LayoutDashboard },
   { href: '/projects', label: '프로젝트', icon: FolderKanban },
   { href: '/tasks', label: '작업', icon: CheckSquare },
-  { href: '/calendar', label: '캘린더', icon: Calendar },
+  { href: '/storyboard', label: '스토리보드', icon: Film },
 ];
 
 const moreNav = [
+  { href: '/calendar', label: '캘린더', icon: Calendar },
   { href: '/files', label: '파일/레퍼런스', icon: Files },
   { href: '/production', label: '생산관리', icon: Factory },
   { href: '/delivery', label: '납품관리', icon: Truck },
