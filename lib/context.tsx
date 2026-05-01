@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
-  User, Role, Project, Task, Production, Delivery, CalendarEvent, Notification, Comment, ChecklistItem, Reference
+  User, Role, Project, Task, Production, Delivery, CalendarEvent, Notification, Comment, ChecklistItem, Reference, StoryboardScene
 } from './types';
 import {
   USERS, DEMO_CREDENTIALS,
@@ -21,6 +21,7 @@ interface AppState {
   events: CalendarEvent[];
   notifications: Notification[];
   references: Reference[];
+  storyboardScenes: StoryboardScene[];
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -48,6 +49,9 @@ interface AppState {
   unreadCount: number;
   addReference: (data: { title: string; description?: string; url?: string; imageFile?: File; tags: string[]; projectId?: string }) => Promise<void>;
   deleteReference: (id: string) => Promise<void>;
+  addScene: (projectId: string) => Promise<void>;
+  updateScene: (id: string, updates: Partial<StoryboardScene>) => Promise<void>;
+  deleteScene: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -116,6 +120,16 @@ function mapNotification(row: any): Notification {
   };
 }
 
+function mapStoryboardScene(row: any): StoryboardScene {
+  return {
+    id: row.id, projectId: row.project_id, sceneOrder: row.scene_order,
+    title: row.title, location: row.location, characters: row.characters,
+    description: row.description, dialogue: row.dialogue, cameraAngle: row.camera_angle,
+    mood: row.mood, props: row.props, duration: row.duration,
+    notes: row.notes, createdAt: row.created_at,
+  };
+}
+
 function mapReference(row: any): Reference {
   return {
     id: row.id, title: row.title, description: row.description,
@@ -133,7 +147,7 @@ function loadLocal<T>(key: string): T | null {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
 }
 function clearLocalData() {
-  ['arium_projects', 'arium_tasks', 'arium_productions', 'arium_deliveries', 'arium_events', 'arium_notifications', 'arium_references'].forEach(k => localStorage.removeItem(k));
+  ['arium_projects', 'arium_tasks', 'arium_productions', 'arium_deliveries', 'arium_events', 'arium_notifications', 'arium_references', 'arium_storyboard'].forEach(k => localStorage.removeItem(k));
   localStorage.setItem('arium_data_version', DATA_VERSION);
 }
 
@@ -147,6 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [references, setReferences] = useState<Reference[]>([]);
+  const [storyboardScenes, setStoryboardScenes] = useState<StoryboardScene[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -167,7 +182,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveLocal('arium_events', events);
     saveLocal('arium_notifications', notifications);
     saveLocal('arium_references', references);
-  }, [projects, tasks, productions, deliveries, events, notifications, references, loading]);
+    saveLocal('arium_storyboard', storyboardScenes);
+  }, [projects, tasks, productions, deliveries, events, notifications, references, storyboardScenes, loading]);
 
   function loadFromLocalStorage() {
     setUsers(USERS);
@@ -178,6 +194,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setEvents(loadLocal<CalendarEvent[]>('arium_events') ?? INITIAL_EVENTS);
     setNotifications(loadLocal<Notification[]>('arium_notifications') ?? INITIAL_NOTIFICATIONS);
     setReferences(loadLocal<Reference[]>('arium_references') ?? []);
+    setStoryboardScenes(loadLocal<StoryboardScene[]>('arium_storyboard') ?? []);
   }
 
   async function loadAll() {
@@ -188,7 +205,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         { data: pData, error: pError }, { data: tData, error: tError },
         { data: commentsData, error: cError }, { data: attachmentsData },
         { data: prData }, { data: dData }, { data: checklistData },
-        { data: eData }, { data: nData }, { data: refData },
+        { data: eData }, { data: nData }, { data: refData }, { data: sceneData },
       ] = await Promise.all([
         supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
@@ -201,6 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('calendar_events').select('*').order('date'),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
         supabase.from('ref_items').select('*').order('created_at', { ascending: false }),
+        supabase.from('storyboard_scenes').select('*').order('scene_order'),
       ]);
 
 
@@ -296,6 +314,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setNotifications((nData || []).map(mapNotification));
         setReferences((refData || []).map(mapReference));
+        setStoryboardScenes((sceneData || []).map(mapStoryboardScene));
       } else {
         // Supabase 비어있음 → localStorage 폴백 (데이터 보존)
         loadFromLocalStorage();
@@ -662,6 +681,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await supabase.from('ref_items').delete().eq('id', id);
   };
 
+  const addScene = async (projectId: string) => {
+    const id = uid(); const created_at = now();
+    const projectScenes = storyboardScenes.filter(s => s.projectId === projectId);
+    const sceneOrder = projectScenes.length + 1;
+    const newScene: StoryboardScene = { id, projectId, sceneOrder, createdAt: created_at };
+    setStoryboardScenes(prev => [...prev, newScene]);
+    await supabase.from('storyboard_scenes').insert({
+      id, project_id: projectId, scene_order: sceneOrder, created_at,
+    });
+  };
+
+  const updateScene = async (id: string, updates: Partial<StoryboardScene>) => {
+    setStoryboardScenes(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    const db: any = {};
+    if (updates.title !== undefined) db.title = updates.title;
+    if (updates.location !== undefined) db.location = updates.location;
+    if (updates.characters !== undefined) db.characters = updates.characters;
+    if (updates.description !== undefined) db.description = updates.description;
+    if (updates.dialogue !== undefined) db.dialogue = updates.dialogue;
+    if (updates.cameraAngle !== undefined) db.camera_angle = updates.cameraAngle;
+    if (updates.mood !== undefined) db.mood = updates.mood;
+    if (updates.props !== undefined) db.props = updates.props;
+    if (updates.duration !== undefined) db.duration = updates.duration;
+    if (updates.notes !== undefined) db.notes = updates.notes;
+    if (Object.keys(db).length > 0) await supabase.from('storyboard_scenes').update(db).eq('id', id);
+  };
+
+  const deleteScene = async (id: string) => {
+    setStoryboardScenes(prev => prev.filter(s => s.id !== id));
+    await supabase.from('storyboard_scenes').delete().eq('id', id);
+  };
+
   const unreadCount = notifications.filter(n => n.userId === currentUser?.id && !n.read).length;
 
   if (loading) {
@@ -692,6 +743,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addProduction, updateProduction, addDelivery, updateDelivery,
       toggleChecklist, addEvent, deleteEvent, markNotificationRead, unreadCount,
       addReference, deleteReference,
+      storyboardScenes, addScene, updateScene, deleteScene,
     }}>
       {children}
     </AppContext.Provider>

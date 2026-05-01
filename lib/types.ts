@@ -133,3 +133,20 @@ export interface Reference {
   createdBy: string;
   createdAt: string;
 }
+
+export interface StoryboardScene {
+  id: string;
+  projectId: string;
+  sceneOrder: number;
+  title?: string;
+  location?: string;
+  characters?: string;
+  description?: string;
+  dialogue?: string;
+  cameraAngle?: string;
+  mood?: string;
+  props?: string;
+  duration?: string;
+  notes?: string;
+  createdAt: string;
+}

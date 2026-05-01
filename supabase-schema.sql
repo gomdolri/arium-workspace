@@ -126,3 +126,22 @@ alter table calendar_events disable row level security;
 alter table notifications disable row level security;
 alter table attachments disable row level security;
 alter table ref_items disable row level security;
+
+create table if not exists storyboard_scenes (
+  id text primary key,
+  project_id text not null,
+  scene_order integer not null default 0,
+  title text,
+  location text,
+  characters text,
+  description text,
+  dialogue text,
+  camera_angle text,
+  mood text,
+  props text,
+  duration text,
+  notes text,
+  created_at text not null
+);
+
+alter table storyboard_scenes disable row level security;
