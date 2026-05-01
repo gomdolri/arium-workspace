@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
-  User, Role, Project, Task, Production, Delivery, CalendarEvent, Notification, Comment, ChecklistItem
+  User, Role, Project, Task, Production, Delivery, CalendarEvent, Notification, Comment, ChecklistItem, Reference
 } from './types';
 import {
   USERS, DEMO_CREDENTIALS,
@@ -20,6 +20,7 @@ interface AppState {
   deliveries: Delivery[];
   events: CalendarEvent[];
   notifications: Notification[];
+  references: Reference[];
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -45,6 +46,8 @@ interface AppState {
   deleteEvent: (id: string) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   unreadCount: number;
+  addReference: (data: { title: string; description?: string; url?: string; imageFile?: File; tags: string[]; projectId?: string }) => Promise<void>;
+  deleteReference: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -113,6 +116,14 @@ function mapNotification(row: any): Notification {
   };
 }
 
+function mapReference(row: any): Reference {
+  return {
+    id: row.id, title: row.title, description: row.description,
+    url: row.url, imageUrl: row.image_url, tags: row.tags || [],
+    projectId: row.project_id, createdBy: row.created_by, createdAt: row.created_at,
+  };
+}
+
 const DATA_VERSION = 'v2';
 
 function saveLocal(key: string, value: unknown) {
@@ -122,7 +133,7 @@ function loadLocal<T>(key: string): T | null {
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; }
 }
 function clearLocalData() {
-  ['arium_projects', 'arium_tasks', 'arium_productions', 'arium_deliveries', 'arium_events', 'arium_notifications'].forEach(k => localStorage.removeItem(k));
+  ['arium_projects', 'arium_tasks', 'arium_productions', 'arium_deliveries', 'arium_events', 'arium_notifications', 'arium_references'].forEach(k => localStorage.removeItem(k));
   localStorage.setItem('arium_data_version', DATA_VERSION);
 }
 
@@ -135,6 +146,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [references, setReferences] = useState<Reference[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -154,7 +166,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveLocal('arium_deliveries', deliveries);
     saveLocal('arium_events', events);
     saveLocal('arium_notifications', notifications);
-  }, [projects, tasks, productions, deliveries, events, notifications, loading]);
+    saveLocal('arium_references', references);
+  }, [projects, tasks, productions, deliveries, events, notifications, references, loading]);
 
   function loadFromLocalStorage() {
     setUsers(USERS);
@@ -164,6 +177,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDeliveries(loadLocal<Delivery[]>('arium_deliveries') ?? INITIAL_DELIVERY);
     setEvents(loadLocal<CalendarEvent[]>('arium_events') ?? INITIAL_EVENTS);
     setNotifications(loadLocal<Notification[]>('arium_notifications') ?? INITIAL_NOTIFICATIONS);
+    setReferences(loadLocal<Reference[]>('arium_references') ?? []);
   }
 
   async function loadAll() {
@@ -174,7 +188,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         { data: pData, error: pError }, { data: tData, error: tError },
         { data: commentsData, error: cError }, { data: attachmentsData },
         { data: prData }, { data: dData }, { data: checklistData },
-        { data: eData }, { data: nData },
+        { data: eData }, { data: nData }, { data: refData },
       ] = await Promise.all([
         supabase.from('users').select('id, name, role, email').order('name'),
         supabase.from('projects').select('*').order('created_at'),
@@ -186,6 +200,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.from('checklist_items').select('*'),
         supabase.from('calendar_events').select('*').order('date'),
         supabase.from('notifications').select('*').order('created_at', { ascending: false }),
+        supabase.from('ref_items').select('*').order('created_at', { ascending: false }),
       ]);
 
 
@@ -280,6 +295,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
 
         setNotifications((nData || []).map(mapNotification));
+        setReferences((refData || []).map(mapReference));
       } else {
         // Supabase 비어있음 → localStorage 폴백 (데이터 보존)
         loadFromLocalStorage();
@@ -612,6 +628,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await supabase.from('notifications').update({ read: true }).eq('id', id);
   };
 
+  const addReference = async (data: { title: string; description?: string; url?: string; imageFile?: File; tags: string[]; projectId?: string }) => {
+    if (!currentUser) return;
+    const id = uid(); const created_at = now();
+    let imageUrl: string | undefined;
+
+    if (data.imageFile) {
+      try {
+        const formData = new FormData();
+        formData.append('file', data.imageFile);
+        formData.append('upload_preset', 'arium-uploads');
+        const res = await fetch('https://api.cloudinary.com/v1_1/dm1nzbn7k/auto/upload', { method: 'POST', body: formData });
+        const json = await res.json();
+        if (json.secure_url) imageUrl = json.secure_url;
+      } catch {}
+    }
+
+    const newRef: Reference = {
+      id, title: data.title, description: data.description,
+      url: data.url, imageUrl, tags: data.tags,
+      projectId: data.projectId || undefined, createdBy: currentUser.id, createdAt: created_at,
+    };
+    setReferences(prev => [newRef, ...prev]);
+    await supabase.from('ref_items').insert({
+      id, title: data.title, description: data.description,
+      url: data.url, image_url: imageUrl, tags: data.tags,
+      project_id: data.projectId || null, created_by: currentUser.id, created_at,
+    });
+  };
+
+  const deleteReference = async (id: string) => {
+    setReferences(prev => prev.filter(r => r.id !== id));
+    await supabase.from('ref_items').delete().eq('id', id);
+  };
+
   const unreadCount = notifications.filter(n => n.userId === currentUser?.id && !n.read).length;
 
   if (loading) {
@@ -636,11 +686,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       currentUser, users, projects, tasks, productions, deliveries,
-      events, notifications, loading, login, logout,
+      events, notifications, references, loading, login, logout,
       addUser, updateUser, changePassword, deleteUser,
       addProject, updateProject, deleteProject, addTask, updateTask, deleteTask, addComment, addAttachment, addLink,
       addProduction, updateProduction, addDelivery, updateDelivery,
       toggleChecklist, addEvent, deleteEvent, markNotificationRead, unreadCount,
+      addReference, deleteReference,
     }}>
       {children}
     </AppContext.Provider>

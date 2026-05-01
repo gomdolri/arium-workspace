@@ -121,3 +121,15 @@ export interface Notification {
   createdAt: string;
   link?: string;
 }
+
+export interface Reference {
+  id: string;
+  title: string;
+  description?: string;
+  url?: string;
+  imageUrl?: string;
+  tags: string[];
+  projectId?: string;
+  createdBy: string;
+  createdAt: string;
+}

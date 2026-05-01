@@ -92,6 +92,29 @@ create table if not exists notifications (
   link text
 );
 
+create table if not exists attachments (
+  id text primary key,
+  task_id text not null,
+  name text not null,
+  url text not null,
+  type text not null,
+  size integer default 0,
+  uploaded_by text not null,
+  uploaded_at text not null
+);
+
+create table if not exists ref_items (
+  id text primary key,
+  title text not null,
+  description text,
+  url text,
+  image_url text,
+  tags text[] default '{}',
+  project_id text,
+  created_by text not null,
+  created_at text not null
+);
+
 -- RLS 비활성화 (내부 팀 전용 툴)
 alter table projects disable row level security;
 alter table tasks disable row level security;
@@ -101,3 +124,5 @@ alter table deliveries disable row level security;
 alter table checklist_items disable row level security;
 alter table calendar_events disable row level security;
 alter table notifications disable row level security;
+alter table attachments disable row level security;
+alter table ref_items disable row level security;
